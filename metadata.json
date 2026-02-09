@@ -1,0 +1,5 @@
+{
+  "name": "Valyux - Smart Grocery Price Comparison",
+  "description": "A cross-platform grocery comparison tool that helps users find the cheapest prices across BigBasket, Blinkit, and Swiggy Instamart with AI-powered basket optimization.",
+  "requestFramePermissions": []
+}
