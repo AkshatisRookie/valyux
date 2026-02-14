@@ -171,157 +171,252 @@ const ElectronicsSearch: React.FC = () => {
   };
 
   return (
-    <div>
-      {/* Hero Banner */}
-      <section className="mb-8 rounded-3xl overflow-hidden relative h-48 md:h-64 bg-gradient-to-r from-teal-600 to-cyan-600 flex items-center px-8 md:px-16 shadow-2xl shadow-teal-100">
-        <div className="relative z-10 max-w-lg">
-          <h1 className="text-3xl md:text-5xl font-black text-white mb-2 leading-tight">Compare Electronics Prices.</h1>
-          <p className="text-teal-100 text-sm md:text-lg font-medium">Find the best deals on Amazon & Flipkart. Redirects you to official retailer pages.</p>
-          <div className="mt-6 flex items-center gap-3">
-            <div className="flex -space-x-3">
-              <img src="https://www.amazon.in/favicon.ico" className="w-9 h-9 rounded-full border-2 border-white bg-white shadow-md object-contain p-1" alt="Amazon" title="Amazon" />
-              <img src="https://www.flipkart.com/favicon.ico" className="w-9 h-9 rounded-full border-2 border-white bg-white shadow-md object-contain p-1" alt="Flipkart" title="Flipkart" />
-            </div>
-            <span className="text-white text-xs md:text-sm font-bold">+ Croma & more coming soon</span>
-          </div>
-        </div>
-        <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-20 pointer-events-none">
-          <svg viewBox="0 0 200 200" className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
-            <path fill="#FFFFFF" d="M39.5,-51.2C52.1,-42.6,64.1,-32.4,68.6,-19.5C73.2,-6.5,70.4,9.2,63.8,22.7C57.2,36.2,46.8,47.5,34.3,55.1C21.7,62.7,7.1,66.6,-7.5,65.3C-22.1,64,-36.7,57.5,-47.4,47.3C-58.2,37,-65.1,23,-67.1,8.2C-69.1,-6.7,-66.2,-22.3,-57.8,-34.1C-49.4,-45.9,-35.5,-53.8,-22,-58.4C-8.5,-63,4.6,-64.2,17,-60.3C29.4,-56.4,26.9,-59.9,39.5,-51.2Z" transform="translate(100 100)" />
-          </svg>
-        </div>
-      </section>
+		<div>
+			{/* Hero Banner */}
+			<section className="mb-8 rounded-3xl overflow-hidden relative h-48 md:h-64 bg-gradient-to-r from-teal-600 to-cyan-600 flex items-center px-8 md:px-16 shadow-2xl shadow-teal-100">
+				<div className="relative z-10 max-w-lg">
+					<h1 className="text-3xl md:text-5xl font-black text-white mb-2 leading-tight">
+						Compare Electronics Prices.
+					</h1>
+					<p className="text-teal-100 text-sm md:text-lg font-medium">
+						Find the best deals on Amazon & Flipkart. Redirects you
+						to official retailer pages.
+					</p>
+					<div className="mt-6 flex items-center gap-3">
+						<div className="flex -space-x-3">
+							<img
+								src="https://www.amazon.in/favicon.ico"
+								className="w-9 h-9 rounded-full border-2 border-white bg-white shadow-md object-contain p-1"
+								alt="Amazon"
+								title="Amazon"
+							/>
+							<img
+								src="https://www.flipkart.com/favicon.ico"
+								className="w-9 h-9 rounded-full border-2 border-white bg-white shadow-md object-contain p-1"
+								alt="Flipkart"
+								title="Flipkart"
+							/>
+						</div>
+						<span className="text-white text-xs md:text-sm font-bold">
+							+ Croma & more coming soon
+						</span>
+					</div>
+				</div>
+				<div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-20 pointer-events-none">
+					<svg
+						viewBox="0 0 200 200"
+						className="h-full w-full"
+						xmlns="http://www.w3.org/2000/svg">
+						<path
+							fill="#FFFFFF"
+							d="M39.5,-51.2C52.1,-42.6,64.1,-32.4,68.6,-19.5C73.2,-6.5,70.4,9.2,63.8,22.7C57.2,36.2,46.8,47.5,34.3,55.1C21.7,62.7,7.1,66.6,-7.5,65.3C-22.1,64,-36.7,57.5,-47.4,47.3C-58.2,37,-65.1,23,-67.1,8.2C-69.1,-6.7,-66.2,-22.3,-57.8,-34.1C-49.4,-45.9,-35.5,-53.8,-22,-58.4C-8.5,-63,4.6,-64.2,17,-60.3C29.4,-56.4,26.9,-59.9,39.5,-51.2Z"
+							transform="translate(100 100)"
+						/>
+					</svg>
+				</div>
+			</section>
 
-      {/* Search Input */}
-      <div className="relative max-w-2xl mx-auto mb-8">
-        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-        </div>
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search for smartphones, laptops, headphones, TVs..."
-          className="w-full bg-white border border-gray-200 rounded-2xl py-4 pl-12 pr-12 text-base shadow-lg shadow-gray-100 focus:ring-2 focus:ring-teal-200 focus:border-teal-300 transition-all outline-none"
-        />
-        {isLoading && (
-          <div className="absolute inset-y-0 right-12 flex items-center">
-            <div className="w-5 h-5 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
-          </div>
-        )}
-        {query && !isLoading && (
-          <button
-            onClick={() => setQuery('')}
-            className="absolute inset-y-0 right-4 flex items-center text-gray-400 hover:text-gray-600"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        )}
-      </div>
+			{/* Search Input */}
+			<div className="relative max-w-2xl mx-auto mb-8">
+				<div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+					<svg
+						className="w-5 h-5 text-gray-400"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24">
+						<path
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							strokeWidth={2}
+							d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+						/>
+					</svg>
+				</div>
+				<input
+					type="text"
+					value={query}
+					onChange={(e) => setQuery(e.target.value)}
+					placeholder="Search for smartphones, laptops, headphones, TVs..."
+					className="w-full bg-white border border-gray-200 rounded-2xl py-4 pl-12 pr-12 text-base shadow-lg shadow-gray-100 focus:ring-2 focus:ring-teal-200 focus:border-teal-300 transition-all outline-none"
+				/>
+				{isLoading && (
+					<div className="absolute inset-y-0 right-12 flex items-center">
+						<div className="w-5 h-5 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
+					</div>
+				)}
+				{query && !isLoading && (
+					<button
+						onClick={() => setQuery("")}
+						className="absolute inset-y-0 right-4 flex items-center text-gray-400 hover:text-gray-600">
+						<svg
+							className="w-5 h-5"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24">
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth={2}
+								d="M6 18L18 6M6 6l12 12"
+							/>
+						</svg>
+					</button>
+				)}
+			</div>
 
-      {/* Loading Skeleton */}
-      {isLoading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse">
-              <div className="aspect-square bg-gray-200" />
-              <div className="p-5 space-y-3">
-                <div className="h-3 bg-gray-200 rounded w-1/4" />
-                <div className="h-5 bg-gray-200 rounded w-3/4" />
-                <div className="h-20 bg-gray-100 rounded-xl" />
-                <div className="h-20 bg-gray-100 rounded-xl" />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+			{/* Loading Skeleton */}
+			{isLoading && (
+				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+					{[1, 2, 3, 4, 5, 6].map((i) => (
+						<div
+							key={i}
+							className="bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse">
+							<div className="aspect-square bg-gray-200" />
+							<div className="p-5 space-y-3">
+								<div className="h-3 bg-gray-200 rounded w-1/4" />
+								<div className="h-5 bg-gray-200 rounded w-3/4" />
+								<div className="h-20 bg-gray-100 rounded-xl" />
+								<div className="h-20 bg-gray-100 rounded-xl" />
+							</div>
+						</div>
+					))}
+				</div>
+			)}
 
-      {/* Error State */}
-      {error && !isLoading && (
-        <div className="text-center py-16 bg-red-50 rounded-3xl border-2 border-dashed border-red-200">
-          <svg className="w-12 h-12 mx-auto text-red-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-          </svg>
-          <h3 className="text-xl font-bold text-red-800 mb-2">Oops! Something went wrong</h3>
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={() => performSearch(query)}
-            className="bg-red-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-red-700 transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
-      )}
+			{/* Error State */}
+			{error && !isLoading && (
+				<div className="text-center py-16 bg-red-50 rounded-3xl border-2 border-dashed border-red-200">
+					<svg
+						className="w-12 h-12 mx-auto text-red-400 mb-4"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24">
+						<path
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							strokeWidth={2}
+							d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+						/>
+					</svg>
+					<h3 className="text-xl font-bold text-red-800 mb-2">
+						Oops! Something went wrong
+					</h3>
+					<p className="text-red-600 mb-4">{error}</p>
+					<button
+						onClick={() => performSearch(query)}
+						className="bg-red-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-red-700 transition-colors">
+						Try Again
+					</button>
+				</div>
+			)}
 
-      {/* Home Page — Featured Products (shown before any search) */}
-      {!isLoading && !error && !hasSearched && (
-        <>
-          {/* Quick Search Suggestions */}
-          <div className="flex flex-wrap justify-center gap-2 mb-8">
-            {['iPhone 15', 'MacBook Air', 'Sony Headphones', 'Samsung TV', 'Apple Watch', 'boAt Earbuds'].map(suggestion => (
-              <button
-                key={suggestion}
-                onClick={() => setQuery(suggestion)}
-                className="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-600 hover:border-teal-300 hover:text-teal-600 transition-colors shadow-sm"
-              >
-                {suggestion}
-              </button>
-            ))}
-          </div>
+			{/* Home Page — Featured Products (shown before any search) */}
+			{!isLoading && !error && !hasSearched && (
+				<>
+					{/* Quick Search Suggestions */}
+					<div className="flex flex-wrap justify-center gap-2 mb-8">
+						{[
+							"iPhone 15",
+							"MacBook Air",
+							"Sony Headphones",
+							"Samsung TV",
+							"Apple Watch",
+							"boAt Earbuds",
+						].map((suggestion) => (
+							<button
+								key={suggestion}
+								onClick={() => setQuery(suggestion)}
+								className="px-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-600 hover:border-teal-300 hover:text-teal-600 transition-colors shadow-sm">
+								{suggestion}
+							</button>
+						))}
+					</div>
 
-          {/* Featured / Trending Section */}
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-black text-gray-900">Trending Deals</h2>
-              <p className="text-xs text-gray-400 mt-0.5">Popular electronics with the best prices right now</p>
-            </div>
-          </div>
+					{/* Featured / Trending Section */}
+					<div className="mb-6 flex items-center justify-between">
+						<div>
+							<h2 className="text-lg font-black text-gray-900">
+								Trending Deals
+							</h2>
+							<p className="text-xs text-gray-400 mt-0.5">
+								Popular electronics with the best prices right
+								now
+							</p>
+						</div>
+					</div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredProducts.map(renderProductCard)}
-          </div>
-        </>
-      )}
+					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+						{featuredProducts.map(renderProductCard)}
+					</div>
+				</>
+			)}
 
-      {/* No Results Found */}
-      {!isLoading && !error && hasSearched && results.length === 0 && (
-        <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
-          <svg className="w-12 h-12 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h3 className="text-xl font-bold text-gray-800 mb-2">No products found</h3>
-          <p className="text-gray-500">Try a different search term like "iPhone", "laptop", or "headphones".</p>
-          <button onClick={() => setQuery('')} className="mt-4 text-teal-600 font-bold underline underline-offset-4">Clear search</button>
-        </div>
-      )}
+			{/* No Results Found */}
+			{!isLoading && !error && hasSearched && results.length === 0 && (
+				<div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+					<svg
+						className="w-12 h-12 mx-auto text-gray-300 mb-4"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24">
+						<path
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							strokeWidth={2}
+							d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+						/>
+					</svg>
+					<h3 className="text-xl font-bold text-gray-800 mb-2">
+						No products found
+					</h3>
+					<p className="text-gray-500">
+						Try a different search term like "iPhone", "laptop", or
+						"headphones".
+					</p>
+					<button
+						onClick={() => setQuery("")}
+						className="mt-4 text-teal-600 font-bold underline underline-offset-4">
+						Clear search
+					</button>
+				</div>
+			)}
 
-      {/* Results Count */}
-      {!isLoading && !error && hasSearched && results.length > 0 && (
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm text-gray-500 font-medium">
-            Found <span className="font-bold text-gray-900">{results.length}</span> product{results.length !== 1 ? 's' : ''} for "<span className="font-bold text-gray-900">{debouncedQuery}</span>"
-          </p>
-        </div>
-      )}
+			{/* Results Count */}
+			{!isLoading && !error && hasSearched && results.length > 0 && (
+				<div className="mb-4 flex items-center justify-between">
+					<p className="text-sm text-gray-500 font-medium">
+						Found{" "}
+						<span className="font-bold text-gray-900">
+							{results.length}
+						</span>{" "}
+						product{results.length !== 1 ? "s" : ""} for "
+						<span className="font-bold text-gray-900">
+							{debouncedQuery}
+						</span>
+						"
+					</p>
+				</div>
+			)}
 
-      {/* Search Results Grid */}
-      {!isLoading && !error && results.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {results.map(renderProductCard)}
-        </div>
-      )}
+			{/* Search Results Grid */}
+			{!isLoading && !error && results.length > 0 && (
+				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+					{results.map(renderProductCard)}
+				</div>
+			)}
 
-      {/* Subtle Disclosure — reads as helpful info, not a commission statement */}
-      {(results.length > 0 || (!hasSearched && featuredProducts.length > 0)) && !isLoading && !error && (
-        <p className="text-center text-[10px] text-gray-300 mt-8 font-medium">
-          Prices are indicative and may vary. Clicking "Buy" will redirect you to the official retailer page for final pricing and purchase.
-        </p>
-      )}
-    </div>
+			{/* Subtle Disclosure — reads as helpful info, not a commission statement */}
+			{(results.length > 0 ||
+				(!hasSearched && featuredProducts.length > 0)) &&
+				!isLoading &&
+				!error && (
+					<p className="text-center text-[10px] text-gray-300 mt-8 font-medium">
+						Prices are indicative and may vary. Clicking "Buy" will
+						redirect you to the official retailer page for final
+						pricing and purchase.
+					</p>
+				)}
+		</div>
   );
 };
 
