@@ -84,7 +84,9 @@ const ElectronicsPage: React.FC = () => {
   const [sort, setSort] = useState<SortOption>('relevance');
 
   const { results, isLoading, error, hasSearched } = useElectronicsSearch(query, filters, sort);
-  const featured = useFeaturedProducts();
+
+  // Featured products NOW respect filters and sort
+  const featured = useFeaturedProducts(filters, sort);
 
   /* ── Handlers ───────────────────────────────────────────────────── */
   const handleClear = useCallback(() => {
@@ -140,18 +142,23 @@ const ElectronicsPage: React.FC = () => {
         </div>
       </section>
 
-      {/* ══ Search bar ════════════════════════════════════════════════ */}
+      {/* ══ Search bar (with instant fuzzy suggestions) ═══════════════ */}
       <ElectronicsSearchBar value={query} onChange={setQuery} isLoading={isLoading} />
 
-      {/* ══ Filters ═══════════════════════════════════════════════════ */}
+      {/* ══ Filters (work on ALL states now) ══════════════════════════ */}
       <ElectronicsFilters filters={filters} onChange={setFilters} />
 
-      {/* ══ Sort + result count ════════════════════════════════════════ */}
-      {showResults && (
-        <ElectronicsSort value={sort} onChange={setSort} resultCount={results.length} query={query} />
+      {/* ══ Sort (shown for both landing + search results) ════════════ */}
+      {(showResults || (showLanding && featured.length > 0)) && (
+        <ElectronicsSort
+          value={sort}
+          onChange={setSort}
+          resultCount={showResults ? results.length : featured.length}
+          query={query}
+        />
       )}
 
-      {/* ══ Landing ═══════════════════════════════════════════════════ */}
+      {/* ══ Landing — filtered featured products ══════════════════════ */}
       {showLanding && (
         <>
           <div className="elec-fade-in flex flex-wrap justify-center gap-2" style={{ animationDelay: '160ms' }}>
@@ -167,28 +174,45 @@ const ElectronicsPage: React.FC = () => {
             ))}
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-black text-gray-900 dark:text-gray-100">Trending Deals</h2>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                  Popular electronics with the best prices right now
-                </p>
+          {featured.length > 0 ? (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-lg font-black text-gray-900 dark:text-gray-100">Trending Deals</h2>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                    Popular electronics with the best prices right now
+                  </p>
+                </div>
               </div>
+              <ElectronicsResults products={featured} />
             </div>
-            <ElectronicsResults products={featured} />
-          </div>
+          ) : (
+            <div className="text-center py-16">
+              <div className="mx-auto w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-1">No deals match your filters</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Try adjusting your filters to see more products.</p>
+              <button onClick={() => setFilters({ ...DEFAULT_FILTERS })}
+                className="text-indigo-600 dark:text-indigo-400 font-semibold text-sm hover:underline underline-offset-4">
+                Clear all filters
+              </button>
+            </div>
+          )}
         </>
       )}
 
-      {/* ══ States ════════════════════════════════════════════════════ */}
+      {/* ══ Search states ═════════════════════════════════════════════ */}
       {showLoading && <ElectronicsLoading />}
       {showResults && <ElectronicsResults products={results} />}
       {showEmpty   && <ElectronicsEmpty query={query} onClear={handleClear} onSuggestionClick={handleSuggestion} />}
       {showError   && <ElectronicsError message={error ?? undefined} onRetry={handleRetry} />}
 
       {/* ══ Disclosure ════════════════════════════════════════════════ */}
-      {(showResults || showLanding) && (
+      {(showResults || (showLanding && featured.length > 0)) && (
         <p className="text-center text-[10px] text-gray-300 dark:text-gray-600 mt-4 font-medium">
           Prices are indicative and may vary. Clicking &ldquo;Buy&rdquo; redirects you to the official retailer page.
           We may earn a commission at no extra cost to you.

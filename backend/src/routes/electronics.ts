@@ -270,13 +270,17 @@ router.get('/electronics/search', async (req: Request, res: Response): Promise<v
 
     let results = [...STUB_PRODUCTS];
 
-    // Filter by search query
+    // Filter by search query — token-based matching for better discovery
+    // e.g. "iphone blue" will match "Apple iPhone 15 (128 GB) – Blue"
+    // because both tokens "iphone" and "blue" appear in the searchable text
     if (query) {
-      results = results.filter(p =>
-        p.name.toLowerCase().includes(query) ||
-        p.brand.toLowerCase().includes(query) ||
-        p.category.toLowerCase().includes(query)
-      );
+      const tokens = query.split(/\s+/).filter(t => t.length >= 2);
+      if (tokens.length > 0) {
+        results = results.filter(p => {
+          const searchable = `${p.name} ${p.brand} ${p.category} ${p.id}`.toLowerCase();
+          return tokens.every(token => searchable.includes(token));
+        });
+      }
     }
 
     // Filter by category

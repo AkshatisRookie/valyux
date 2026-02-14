@@ -1,5 +1,6 @@
 import React from 'react';
 import { CATEGORIES, DEFAULT_FILTERS } from './types';
+import { useActiveFiltersCount } from './hooks';
 import type { Filters, Category, Retailer } from './types';
 
 interface Props {
@@ -7,9 +8,9 @@ interface Props {
   onChange: (f: Filters) => void;
 }
 
-const RETAILER_OPTIONS: { id: Retailer; label: string; icon: string }[] = [
-  { id: 'Amazon',   label: 'Amazon',   icon: 'https://www.amazon.in/favicon.ico' },
-  { id: 'Flipkart', label: 'Flipkart', icon: 'https://www.flipkart.com/favicon.ico' },
+const RETAILER_OPTIONS: { id: Retailer; label: string; icon: string; desc: string }[] = [
+  { id: 'Amazon',   label: 'Amazon',   icon: 'https://www.amazon.in/favicon.ico', desc: 'Show products on Amazon' },
+  { id: 'Flipkart', label: 'Flipkart', icon: 'https://www.flipkart.com/favicon.ico', desc: 'Show products on Flipkart' },
 ];
 
 const CAT_ICONS: Record<string, string> = {
@@ -24,7 +25,7 @@ const CAT_ICONS: Record<string, string> = {
 };
 
 const ElectronicsFilters: React.FC<Props> = ({ filters, onChange }) => {
-  const hasActive = filters.category !== 'All' || filters.retailers.length > 0 || filters.inStockOnly;
+  const activeCount = useActiveFiltersCount(filters);
 
   const setCategory = (c: Category) => onChange({ ...filters, category: c });
 
@@ -63,12 +64,17 @@ const ElectronicsFilters: React.FC<Props> = ({ filters, onChange }) => {
         </div>
       </div>
 
-      {/* Second row */}
+      {/* Second row: retailer + in-stock + clear */}
       <div className="flex flex-wrap items-center gap-2">
+        {/* Section label */}
+        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mr-1">
+          Show from:
+        </span>
+
         {RETAILER_OPTIONS.map(r => {
           const active = filters.retailers.includes(r.id);
           return (
-            <button key={r.id} onClick={() => toggleRetailer(r.id)}
+            <button key={r.id} onClick={() => toggleRetailer(r.id)} title={r.desc}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold
                          transition-all duration-200 border
                 ${active
@@ -76,10 +82,17 @@ const ElectronicsFilters: React.FC<Props> = ({ filters, onChange }) => {
                   : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500'
                 }`}>
               <img src={r.icon} alt={r.label} className="w-3.5 h-3.5 rounded" />
-              {r.label} only
+              {r.label}
+              {active && (
+                <svg className="w-3 h-3 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              )}
             </button>
           );
         })}
+
+        <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1" />
 
         <button onClick={toggleInStock}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold
@@ -94,11 +107,16 @@ const ElectronicsFilters: React.FC<Props> = ({ filters, onChange }) => {
           In Stock
         </button>
 
-        {hasActive && (
+        {activeCount > 0 && (
           <button onClick={clearAll}
-            className="ml-1 text-xs font-semibold text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300
+            className="ml-1 flex items-center gap-1 text-xs font-semibold text-red-500 dark:text-red-400
+                       hover:text-red-700 dark:hover:text-red-300
                        transition-colors underline underline-offset-2">
-            Clear filters
+            Clear all
+            <span className="inline-flex items-center justify-center w-4 h-4 bg-red-100 dark:bg-red-900/30
+                             text-red-600 dark:text-red-400 text-[9px] font-black rounded-full no-underline">
+              {activeCount}
+            </span>
           </button>
         )}
       </div>
