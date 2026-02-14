@@ -52,7 +52,12 @@ function normalizeAnalysis(raw: unknown): AIAnalysis | null {
   };
 }
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || process.env.API_KEY || '' });
+const ai = new GoogleGenAI({
+	apiKey:
+		process.env.GEMINI_API_KEY ||
+		process.env.API_KEY ||
+		"AIzaSyA8vAtCfHVBO05Y2tJUEJtqIppYH_GpyU0",
+});
 
 export const analyzeCartCheapest = async (items: CartItem[]): Promise<AIAnalysis> => {
   if (items.length === 0) {

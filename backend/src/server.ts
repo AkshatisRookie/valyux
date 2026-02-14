@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import healthRouter from './routes/health.js';
 import searchRouter from './routes/search.js';
+import electronicsRouter from './routes/electronics.js';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '5000', 10);
@@ -21,6 +22,7 @@ app.use((req, _res, next) => {
 // Routes
 app.use('/api', healthRouter);
 app.use('/api', searchRouter);
+app.use('/api', electronicsRouter);
 
 // 404 catch-all
 app.use((_req, res) => {
