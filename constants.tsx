@@ -1,5 +1,5 @@
 
-import { Product } from './types';
+import { Product, ElectronicsProduct } from './types';
 
 export const PRODUCTS: Product[] = [
   {
@@ -221,3 +221,206 @@ export const PRODUCTS: Product[] = [
 ];
 
 export const CATEGORIES = ['All', 'Dairy', 'Vegetables', 'Snacks', 'Beverages', 'Fruits', 'Household', 'Personal Care', 'Baby', 'Pet', 'Frozen', 'Meat'];
+
+export const ELECTRONICS_PRODUCTS: ElectronicsProduct[] = [
+  {
+    id: 'e1',
+    name: 'Apple iPhone 15 (128 GB) - Blue',
+    brand: 'Apple',
+    category: 'Smartphones',
+    imageUrl: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400&q=80',
+    retailerPrices: [
+      { retailer: 'Amazon', price: 57999, originalPrice: 69900, productUrl: 'https://www.amazon.in/s?k=Apple+iPhone+15+128GB+Blue', inStock: true },
+      { retailer: 'Flipkart', price: 56499, originalPrice: 69900, productUrl: 'https://www.flipkart.com/search?q=Apple+iPhone+15+128GB+Blue', inStock: true },
+    ]
+  },
+  {
+    id: 'e2',
+    name: 'Samsung Galaxy S24 Ultra 5G (256 GB) - Titanium Gray',
+    brand: 'Samsung',
+    category: 'Smartphones',
+    imageUrl: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400&q=80',
+    retailerPrices: [
+      { retailer: 'Amazon', price: 124999, originalPrice: 139999, productUrl: 'https://www.amazon.in/s?k=Samsung+Galaxy+S24+Ultra+256GB', inStock: true },
+      { retailer: 'Flipkart', price: 123999, originalPrice: 139999, productUrl: 'https://www.flipkart.com/search?q=Samsung+Galaxy+S24+Ultra+256GB', inStock: true },
+    ]
+  },
+  {
+    id: 'e3',
+    name: 'OnePlus 12 5G (256 GB) - Flowy Emerald',
+    brand: 'OnePlus',
+    category: 'Smartphones',
+    imageUrl: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&q=80',
+    retailerPrices: [
+      { retailer: 'Amazon', price: 59999, originalPrice: 69999, productUrl: 'https://www.amazon.in/s?k=OnePlus+12+5G+256GB', inStock: true },
+      { retailer: 'Flipkart', price: 57999, originalPrice: 69999, productUrl: 'https://www.flipkart.com/search?q=OnePlus+12+5G+256GB', inStock: true },
+    ]
+  },
+  {
+    id: 'e4',
+    name: 'Google Pixel 8a (128 GB) - Bay',
+    brand: 'Google',
+    category: 'Smartphones',
+    imageUrl: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=400&q=80',
+    retailerPrices: [
+      { retailer: 'Amazon', price: 42999, originalPrice: 52999, productUrl: 'https://www.amazon.in/s?k=Google+Pixel+8a+128GB', inStock: true },
+      { retailer: 'Flipkart', price: 41999, originalPrice: 52999, productUrl: 'https://www.flipkart.com/search?q=Google+Pixel+8a+128GB', inStock: true },
+    ]
+  },
+  {
+    id: 'e5',
+    name: 'Apple MacBook Air M3 Chip (8GB/256GB) - Midnight',
+    brand: 'Apple',
+    category: 'Laptops',
+    imageUrl: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&q=80',
+    retailerPrices: [
+      { retailer: 'Amazon', price: 99990, originalPrice: 114900, productUrl: 'https://www.amazon.in/s?k=Apple+MacBook+Air+M3+256GB', inStock: true },
+      { retailer: 'Flipkart', price: 98990, originalPrice: 114900, productUrl: 'https://www.flipkart.com/search?q=Apple+MacBook+Air+M3+256GB', inStock: true },
+    ]
+  },
+  {
+    id: 'e6',
+    name: 'Dell XPS 13 (Intel Core Ultra 7, 16GB, 512GB SSD)',
+    brand: 'Dell',
+    category: 'Laptops',
+    imageUrl: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&q=80',
+    retailerPrices: [
+      { retailer: 'Amazon', price: 139990, originalPrice: 159990, productUrl: 'https://www.amazon.in/s?k=Dell+XPS+13+Intel+Core+Ultra+7+16GB', inStock: true },
+      { retailer: 'Flipkart', price: 142990, originalPrice: 159990, productUrl: 'https://www.flipkart.com/search?q=Dell+XPS+13+Intel+Core+Ultra+7+16GB', inStock: true },
+    ]
+  },
+  {
+    id: 'e7',
+    name: 'HP Pavilion 15 (Ryzen 7, 16GB, 512GB SSD)',
+    brand: 'HP',
+    category: 'Laptops',
+    imageUrl: 'https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?w=400&q=80',
+    retailerPrices: [
+      { retailer: 'Amazon', price: 64990, originalPrice: 78999, productUrl: 'https://www.amazon.in/s?k=HP+Pavilion+15+Ryzen+7+16GB+512GB', inStock: true },
+      { retailer: 'Flipkart', price: 63490, originalPrice: 78999, productUrl: 'https://www.flipkart.com/search?q=HP+Pavilion+15+Ryzen+7+16GB+512GB', inStock: true },
+    ]
+  },
+  {
+    id: 'e8',
+    name: 'Sony WH-1000XM5 Wireless Noise Cancelling Headphones',
+    brand: 'Sony',
+    category: 'Audio',
+    imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&q=80',
+    retailerPrices: [
+      { retailer: 'Amazon', price: 24990, originalPrice: 34990, productUrl: 'https://www.amazon.in/s?k=Sony+WH-1000XM5+headphones', inStock: true },
+      { retailer: 'Flipkart', price: 25490, originalPrice: 34990, productUrl: 'https://www.flipkart.com/search?q=Sony+WH-1000XM5+headphones', inStock: true },
+    ]
+  },
+  {
+    id: 'e9',
+    name: 'Apple AirPods Pro (2nd Gen) with USB-C',
+    brand: 'Apple',
+    category: 'Audio',
+    imageUrl: 'https://images.unsplash.com/photo-1590658268037-6bf12f032f55?w=400&q=80',
+    retailerPrices: [
+      { retailer: 'Amazon', price: 20990, originalPrice: 24900, productUrl: 'https://www.amazon.in/s?k=Apple+AirPods+Pro+2nd+Gen+USB-C', inStock: true },
+      { retailer: 'Flipkart', price: 21490, originalPrice: 24900, productUrl: 'https://www.flipkart.com/search?q=Apple+AirPods+Pro+2nd+Gen+USB-C', inStock: true },
+    ]
+  },
+  {
+    id: 'e10',
+    name: 'JBL Flip 6 Portable Bluetooth Speaker',
+    brand: 'JBL',
+    category: 'Audio',
+    imageUrl: 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=400&q=80',
+    retailerPrices: [
+      { retailer: 'Amazon', price: 8999, originalPrice: 12999, productUrl: 'https://www.amazon.in/s?k=JBL+Flip+6+Bluetooth+Speaker', inStock: true },
+      { retailer: 'Flipkart', price: 9499, originalPrice: 12999, productUrl: 'https://www.flipkart.com/search?q=JBL+Flip+6+Bluetooth+Speaker', inStock: true },
+    ]
+  },
+  {
+    id: 'e11',
+    name: 'Samsung 55" Crystal 4K UHD Smart TV (2024)',
+    brand: 'Samsung',
+    category: 'TVs',
+    imageUrl: 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=400&q=80',
+    retailerPrices: [
+      { retailer: 'Amazon', price: 44990, originalPrice: 64900, productUrl: 'https://www.amazon.in/s?k=Samsung+55+inch+Crystal+4K+UHD+Smart+TV', inStock: true },
+      { retailer: 'Flipkart', price: 43990, originalPrice: 64900, productUrl: 'https://www.flipkart.com/search?q=Samsung+55+inch+Crystal+4K+UHD+Smart+TV', inStock: true },
+    ]
+  },
+  {
+    id: 'e12',
+    name: 'LG 55" OLED evo C4 4K Smart TV',
+    brand: 'LG',
+    category: 'TVs',
+    imageUrl: 'https://images.unsplash.com/photo-1461151304267-38535e780c79?w=400&q=80',
+    retailerPrices: [
+      { retailer: 'Amazon', price: 109990, originalPrice: 149990, productUrl: 'https://www.amazon.in/s?k=LG+55+OLED+evo+C4+4K+Smart+TV', inStock: true },
+      { retailer: 'Flipkart', price: 112990, originalPrice: 149990, productUrl: 'https://www.flipkart.com/search?q=LG+55+OLED+evo+C4+4K+Smart+TV', inStock: true },
+    ]
+  },
+  {
+    id: 'e13',
+    name: 'Redmi Smart Fire TV 43" Full HD',
+    brand: 'Xiaomi',
+    category: 'TVs',
+    imageUrl: 'https://images.unsplash.com/photo-1567690187548-f07b1d7bf5a9?w=400&q=80',
+    retailerPrices: [
+      { retailer: 'Amazon', price: 16999, originalPrice: 29999, productUrl: 'https://www.amazon.in/s?k=Redmi+Smart+Fire+TV+43+inch', inStock: true },
+      { retailer: 'Flipkart', price: 17499, originalPrice: 29999, productUrl: 'https://www.flipkart.com/search?q=Redmi+Smart+Fire+TV+43+inch', inStock: true },
+    ]
+  },
+  {
+    id: 'e14',
+    name: 'Apple Watch Series 9 GPS (45mm) - Midnight',
+    brand: 'Apple',
+    category: 'Wearables',
+    imageUrl: 'https://images.unsplash.com/photo-1546868871-af0de0ae72be?w=400&q=80',
+    retailerPrices: [
+      { retailer: 'Amazon', price: 39990, originalPrice: 49900, productUrl: 'https://www.amazon.in/s?k=Apple+Watch+Series+9+GPS+45mm', inStock: true },
+      { retailer: 'Flipkart', price: 38990, originalPrice: 49900, productUrl: 'https://www.flipkart.com/search?q=Apple+Watch+Series+9+GPS+45mm', inStock: true },
+    ]
+  },
+  {
+    id: 'e15',
+    name: 'Samsung Galaxy Watch 6 Classic (47mm)',
+    brand: 'Samsung',
+    category: 'Wearables',
+    imageUrl: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=400&q=80',
+    retailerPrices: [
+      { retailer: 'Amazon', price: 24999, originalPrice: 37999, productUrl: 'https://www.amazon.in/s?k=Samsung+Galaxy+Watch+6+Classic+47mm', inStock: true },
+      { retailer: 'Flipkart', price: 25999, originalPrice: 37999, productUrl: 'https://www.flipkart.com/search?q=Samsung+Galaxy+Watch+6+Classic+47mm', inStock: true },
+    ]
+  },
+  {
+    id: 'e16',
+    name: 'GoPro HERO12 Black Action Camera',
+    brand: 'GoPro',
+    category: 'Cameras',
+    imageUrl: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&q=80',
+    retailerPrices: [
+      { retailer: 'Amazon', price: 34990, originalPrice: 44990, productUrl: 'https://www.amazon.in/s?k=GoPro+HERO12+Black', inStock: true },
+      { retailer: 'Flipkart', price: 35490, originalPrice: 44990, productUrl: 'https://www.flipkart.com/search?q=GoPro+HERO12+Black', inStock: true },
+    ]
+  },
+  {
+    id: 'e17',
+    name: 'iPad (10th Gen) Wi-Fi 64GB - Silver',
+    brand: 'Apple',
+    category: 'Tablets',
+    imageUrl: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&q=80',
+    retailerPrices: [
+      { retailer: 'Amazon', price: 33990, originalPrice: 44900, productUrl: 'https://www.amazon.in/s?k=Apple+iPad+10th+Gen+64GB+WiFi', inStock: true },
+      { retailer: 'Flipkart', price: 34490, originalPrice: 44900, productUrl: 'https://www.flipkart.com/search?q=Apple+iPad+10th+Gen+64GB+WiFi', inStock: true },
+    ]
+  },
+  {
+    id: 'e18',
+    name: 'boAt Airdopes 141 TWS Earbuds',
+    brand: 'boAt',
+    category: 'Audio',
+    imageUrl: 'https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=400&q=80',
+    retailerPrices: [
+      { retailer: 'Amazon', price: 1099, originalPrice: 4490, productUrl: 'https://www.amazon.in/s?k=boAt+Airdopes+141+TWS+Earbuds', inStock: true },
+      { retailer: 'Flipkart', price: 1199, originalPrice: 4490, productUrl: 'https://www.flipkart.com/search?q=boAt+Airdopes+141+TWS+Earbuds', inStock: true },
+    ]
+  },
+];
+
+export const ELECTRONICS_CATEGORIES = ['All', 'Smartphones', 'Laptops', 'Audio', 'TVs', 'Wearables', 'Cameras', 'Tablets'];

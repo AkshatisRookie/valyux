@@ -1,6 +1,10 @@
 
 export type Platform = 'BigBasket' | 'Blinkit' | 'Instamart' | 'Jiomart' | 'Zepto';
 
+export type ElectronicsRetailer = 'Amazon' | 'Flipkart';
+
+export type AppSection = 'grocery' | 'electronics';
+
 export interface PlatformPrice {
   platform: Platform;
   price: number;
@@ -32,4 +36,23 @@ export interface AIAnalysis {
   optimalSplitTotal: number;
   savingsVsHighest: number;
   recommendation: string;
+}
+
+export interface RetailerPrice {
+  retailer: ElectronicsRetailer;
+  price: number;
+  originalPrice: number;
+  productUrl: string;
+  inStock: boolean;
+  /** Optional per-product EarnKaro Profit Link. If set, "Buy" redirects here instead of the general retailer affiliate link. */
+  affiliateUrl?: string;
+}
+
+export interface ElectronicsProduct {
+  id: string;
+  name: string;
+  brand: string;
+  category: string;
+  imageUrl: string;
+  retailerPrices: RetailerPrice[];
 }
