@@ -3,7 +3,7 @@ export type Platform = 'BigBasket' | 'Blinkit' | 'Instamart' | 'Jiomart' | 'Zept
 
 export type ElectronicsRetailer = 'Amazon' | 'Flipkart';
 
-export type AppSection = 'grocery' | 'electronics';
+export type AppSection = 'grocery' | 'electronics' | 'flights';
 
 export interface PlatformPrice {
   platform: Platform;
