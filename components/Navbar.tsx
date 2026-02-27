@@ -1,7 +1,7 @@
 import React from 'react';
 import { AppSection } from '../types';
 import { useTheme } from './ThemeProvider';
-import logo from '../assets/valyux-logo.png';
+import homelogo from '../assets/valyux-logo.png';
 
 interface NavbarProps {
   cartCount: number;
@@ -78,7 +78,7 @@ const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2 shrink-0 cursor-pointer" onClick={() => window.location.reload()}>
           <img
-            src={logo}
+            src={homelogo}
             alt="Valyux"
             className="w-9 h-9 rounded-lg object-contain bg-neutral-900 dark:bg-neutral-800 p-0.5"
           />

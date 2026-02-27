@@ -11,7 +11,7 @@ import { CATEGORIES } from './constants';
 import { Product, Platform, CartItem, AppSection, ElectronicsCartItem } from './types';
 import { searchViaGemini } from './services/geminiSearchApi';
 import { useDebounce } from './utils/useDebounce';
-import homeLogo from './assets/valyux-logo.png';
+
 
 const AppContent: React.FC = () => {
   const { pincode, setPincode, hasPincode } = usePincode();
