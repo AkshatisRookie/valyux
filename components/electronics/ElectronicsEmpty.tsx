@@ -10,33 +10,21 @@ const SUGGESTIONS = ['iPhone 15', 'MacBook Air', 'Sony Headphones', 'Samsung TV'
 
 const ElectronicsEmpty: React.FC<Props> = ({ query, onClear, onSuggestionClick }) => {
   return (
-    <div className="elec-fade-in text-center py-20 px-6">
-      <div className="mx-auto w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-6">
-        <svg className="w-10 h-10 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-      </div>
-
-      <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">
-        No results for &ldquo;{query}&rdquo;
-      </h3>
-      <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 max-w-md mx-auto">
-        We couldn&rsquo;t find matching electronics. Try a different keyword or browse one of these popular searches.
-      </p>
-
+    <div className="text-center py-12">
+      <p className="text-neutral-600 dark:text-neutral-400 font-medium mb-1">No results for &ldquo;{query}&rdquo;</p>
+      <p className="text-sm text-neutral-500 mb-6">Try another search or pick below.</p>
       <div className="flex flex-wrap justify-center gap-2 mb-6">
         {SUGGESTIONS.map(s => (
-          <button key={s} onClick={() => onSuggestionClick(s)}
-            className="px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full
-                       text-sm font-medium text-gray-600 dark:text-gray-400
-                       hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+          <button
+            key={s}
+            onClick={() => onSuggestionClick(s)}
+            className="px-4 py-2 rounded-lg text-sm font-medium bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 hover:bg-yellow-400 hover:text-neutral-900"
+          >
             {s}
           </button>
         ))}
       </div>
-
-      <button onClick={onClear}
-        className="text-indigo-600 dark:text-indigo-400 font-semibold text-sm hover:underline underline-offset-4">
+      <button onClick={onClear} className="text-sm font-medium text-yellow-600 dark:text-yellow-400 hover:underline">
         Clear search
       </button>
     </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { AppSection } from '../types';
 import { useTheme } from './ThemeProvider';
+import logo from '../assets/valyux-logo.png';
 
 interface NavbarProps {
   cartCount: number;
@@ -9,6 +10,8 @@ interface NavbarProps {
   onSearchChange: (val: string) => void;
   activeSection: AppSection;
   onSectionChange: (section: AppSection) => void;
+  pincode?: string;
+  onPincodeChange?: (p: string) => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -24,9 +27,9 @@ const SECTIONS: {
 }[] = [
   {
     id: 'grocery',
-    label: 'Quick Commerce',
-    activeColor: 'border-indigo-600 text-indigo-600',
-    activeColorDark: 'dark:border-indigo-400 dark:text-indigo-400',
+    label: 'Grocery',
+    activeColor: 'border-yellow-500 text-yellow-600 dark:text-yellow-400',
+    activeColorDark: 'dark:border-yellow-500',
     icon: (
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -36,9 +39,9 @@ const SECTIONS: {
   },
   {
     id: 'electronics',
-    label: 'Electronics & Devices',
-    activeColor: 'border-amber-600 text-amber-600',
-    activeColorDark: 'dark:border-amber-400 dark:text-amber-400',
+    label: 'Electronics',
+    activeColor: 'border-yellow-500 text-yellow-600 dark:text-yellow-400',
+    activeColorDark: 'dark:border-yellow-500',
     icon: (
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -66,56 +69,42 @@ const SECTIONS: {
 
 const Navbar: React.FC<NavbarProps> = ({
   cartCount, onCartClick, searchQuery, onSearchChange, activeSection, onSectionChange,
+  pincode = '', onPincodeChange,
 }) => {
   const { resolved, toggle } = useTheme();
 
   return (
-    <nav className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800
-                    shadow-sm dark:shadow-black/20 transition-colors duration-300">
-      {/* Main Row */}
-      <div className="max-w-7xl mx-auto px-4 lg:px-8 py-3 flex items-center justify-between gap-4">
-        {/* Logo */}
-        <div className="flex items-center gap-2 cursor-pointer shrink-0" onClick={() => window.location.reload()}>
-          <div className="w-10 h-10 bg-indigo-600 dark:bg-indigo-500 rounded-lg flex items-center justify-center
-                          text-white font-black text-xl italic shadow-indigo-200 dark:shadow-indigo-900 shadow-lg">
-            V
-          </div>
-          <span className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter">valyux</span>
+    <nav className="sticky top-0 z-40 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
+      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2 shrink-0 cursor-pointer" onClick={() => window.location.reload()}>
+          <img
+            src={logo}
+            alt="Valyux"
+            className="w-9 h-9 rounded-lg object-contain bg-neutral-900 dark:bg-neutral-800 p-0.5"
+          />
+          <span className="hidden sm:inline-block text-xl font-bold text-neutral-900 dark:text-white">valyux</span>
         </div>
 
-        {/* Search — grocery only */}
-        {activeSection === 'grocery' && (
-          <div className="flex-1 max-w-2xl relative">
-            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-              <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
+        <div className="flex-1 max-w-xl">
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </span>
             <input
               type="text"
-              placeholder="Search across BigBasket, Blinkit, Instamart, Jiomart & Zepto..."
-              className="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-xl py-2.5 pl-10 pr-4
-                         text-sm text-gray-900 dark:text-gray-100
-                         placeholder:text-gray-400 dark:placeholder:text-gray-500
-                         focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900
-                         transition-all outline-none"
+              placeholder={activeSection === 'grocery' ? 'Search products...' : 'Search electronics...'}
+              className="w-full bg-neutral-100 dark:bg-neutral-800 border-0 rounded-lg py-2.5 pl-9 pr-4 text-sm outline-none placeholder:text-neutral-500"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
             />
           </div>
-        )}
+        </div>
 
-        {activeSection !== 'grocery' && <div className="flex-1" />}
-
-        {/* Right actions */}
-        <div className="flex items-center gap-2 md:gap-3 shrink-0">
-          {/* Theme toggle */}
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={toggle}
-            aria-label={resolved === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors
-                       text-gray-500 dark:text-gray-400"
+            aria-label="Toggle theme"
+            className="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500"
           >
             {resolved === 'dark' ? (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -130,58 +119,39 @@ const Navbar: React.FC<NavbarProps> = ({
             )}
           </button>
 
-          {activeSection === 'grocery' && (
-            <button className="hidden md:flex items-center gap-2 px-4 py-2
-                               hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors
-                               font-semibold text-sm text-gray-600 dark:text-gray-400">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              Select Location
-            </button>
-          )}
+          <button
+            onClick={() => onPincodeChange?.('')}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-sm text-neutral-600 dark:text-neutral-400"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            {pincode ? pincode : 'Location'}
+          </button>
 
-          {activeSection === 'grocery' && (
-            <button
-              onClick={onCartClick}
-              className="relative bg-black dark:bg-white text-white dark:text-gray-900
-                         px-5 py-2.5 rounded-xl font-bold text-sm
-                         shadow-xl shadow-black/10 dark:shadow-white/10
-                         hover:scale-105 transition-transform flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
-              My Basket
-              {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] w-5 h-5
-                                 flex items-center justify-center rounded-full border-2
-                                 border-white dark:border-gray-900">
-                  {cartCount}
-                </span>
-              )}
-            </button>
-          )}
+          <button
+            onClick={onCartClick}
+            className="relative flex items-center gap-2 bg-yellow-400 hover:bg-yellow-500 text-neutral-900 px-4 py-2 rounded-lg font-semibold text-sm"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+            Cart
+            {cartCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs min-w-[18px] h-[18px] flex items-center justify-center rounded-full">
+                {cartCount}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
-      {/* Section Tabs */}
-      <div className="max-w-7xl mx-auto px-4 lg:px-8">
-        <div className="flex gap-1">
+      <div className="max-w-6xl mx-auto px-4 border-t border-neutral-100 dark:border-neutral-800">
+        <div className="flex gap-0">
           {SECTIONS.map(section => {
             const isActive = activeSection === section.id;
             return (
               <button
                 key={section.id}
                 onClick={() => onSectionChange(section.id)}
-                className={`flex items-center gap-2 px-5 py-2.5 text-sm font-bold transition-all border-b-2
-                  ${isActive
-                    ? `${section.activeColor} ${section.activeColorDark}`
-                    : 'border-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-200 dark:hover:border-gray-700'
-                  }`}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 -mb-px
+                  ${isActive ? `${section.activeColor} ${section.activeColorDark}` : 'border-transparent text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
               >
                 {section.icon}
                 {section.label}

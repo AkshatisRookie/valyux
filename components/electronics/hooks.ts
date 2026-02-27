@@ -1,18 +1,10 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import Fuse from 'fuse.js';
 import { useDebounce } from '../../utils/useDebounce';
-import { MOCK_PRODUCTS, FEATURED_IDS } from './mockData';
+import { searchViaGemini } from '../../services/geminiSearchApi';
 import { bestPrice } from './types';
-import { createFuseIndex, getInstantSuggestions } from './fuzzySearch';
 import type { Product, Filters, SortOption } from './types';
 
-const API_BASE = 'http://localhost:5000/api';
-
-/* ================================================================== */
-/*  Shared Fuse.js index for client-side fuzzy search                  */
-/* ================================================================== */
-
-const fuseIndex: Fuse<Product> = createFuseIndex(MOCK_PRODUCTS);
+const API_BASE = process.env.VALYUX_API_URL || 'http://localhost:5000';
 
 /* ================================================================== */
 /*  applyFiltersAndSort — shared logic for both backend + fallback     */
@@ -78,6 +70,7 @@ export function useElectronicsSearch(
   query: string,
   filters: Filters,
   sort: SortOption,
+  pincode: string,
 ): SearchResult {
   const [results, setResults] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -87,12 +80,18 @@ export function useElectronicsSearch(
 
   const debouncedQuery = useDebounce(query, 400);
 
-  const fetchResults = useCallback(async (q: string, f: Filters, s: SortOption) => {
-    // ── No query: clear search results (landing page shows filtered featured) ──
+  const fetchResults = useCallback(async (q: string, p: string, f: Filters, s: SortOption) => {
     if (!q.trim()) {
       setResults([]);
       setHasSearched(false);
       setError(null);
+      return;
+    }
+
+    if (!p || !/^\d{6}$/.test(p)) {
+      setError('Valid pincode required');
+      setResults([]);
+      setHasSearched(true);
       return;
     }
 
@@ -102,40 +101,42 @@ export function useElectronicsSearch(
     setError(null);
 
     try {
-      // Try backend first
-      const params = new URLSearchParams({ q, sort: s });
-      if (f.category !== 'All') params.set('category', f.category);
-      if (f.inStockOnly) params.set('inStockOnly', 'true');
-
-      const res = await fetch(`${API_BASE}/electronics/search?${params}`, {
-        signal: abortRef.current.signal,
-      });
-      if (!res.ok) throw new Error('Backend error');
-      const data = await res.json();
-
-      // Apply filters & sort to backend results
-      const items = applyFiltersAndSort(data.results as Product[], f, s);
+      const result = await searchViaGemini(q, p, 'electronics');
+      const raw = result.results || [];
+      const products: Product[] = raw.map((p: any, i: number) => ({
+        id: p.id || `e${i + 1}`,
+        name: p.name || 'Product',
+        brand: p.brand || '',
+        category: (f.category !== 'All' ? f.category : (p.category || 'Electronics')) as any,
+        imageUrl: p.imageUrl || 'https://images.unsplash.com/photo-1556656793-08538906a9f8?w=400&q=80',
+        retailerOffers: (p.retailerOffers || []).map((o: any) => ({
+          retailer: o.retailer,
+          price: Number(o.price) || 0,
+          originalPrice: Number(o.originalPrice) || Number(o.price) || 0,
+          productUrl: o.productUrl || '',
+          inStock: o.inStock !== false,
+          discount: o.discount ?? Math.round((1 - (Number(o.price) || 0) / (Number(o.originalPrice) || 1)) * 100),
+          offers: o.offers || [],
+          deliveryTime: o.deliveryTime,
+        })),
+      }));
+      const items = applyFiltersAndSort(products, f, s);
       setResults(items);
       setHasSearched(true);
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
-
-      // ── Fallback: Fuse.js fuzzy search on local mock data ──
-      console.warn('Backend unavailable, using Fuse.js fuzzy search');
-      const fuseResults = fuseIndex.search(q.trim()).map(r => r.item);
-      const items = applyFiltersAndSort(fuseResults, f, s);
-      setResults(items);
+      setError(err instanceof Error ? err.message : 'Search failed');
+      setResults([]);
       setHasSearched(true);
-      setError(null); // silent fallback
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchResults(debouncedQuery, filters, sort);
+    fetchResults(debouncedQuery, pincode, filters, sort);
     return () => { abortRef.current?.abort(); };
-  }, [debouncedQuery, filters, sort, fetchResults]);
+  }, [debouncedQuery, pincode, filters, sort, fetchResults]);
 
   return { results, isLoading, error, hasSearched };
 }
@@ -144,44 +145,8 @@ export function useElectronicsSearch(
 /*  useFeaturedProducts — NOW respects filters & sort                  */
 /* ================================================================== */
 
-export function useFeaturedProducts(filters: Filters, sort: SortOption): Product[] {
-  return useMemo(() => {
-    const featured = MOCK_PRODUCTS.filter(p => FEATURED_IDS.includes(p.id));
-    return applyFiltersAndSort(featured, filters, sort);
-  }, [filters, sort]);
-}
-
-/* ================================================================== */
-/*  useInstantSuggestions — real-time fuzzy suggestions as user types   */
-/* ================================================================== */
-
-export function useInstantSuggestions(query: string, limit = 5): Product[] {
-  return useMemo(() => {
-    if (!query.trim() || query.trim().length < 1) return [];
-    return getInstantSuggestions(fuseIndex, query, limit);
-  }, [query, limit]);
-}
-
-/* ================================================================== */
-/*  useCyclingPlaceholder — animates the search bar placeholder        */
-/* ================================================================== */
-
-const PLACEHOLDERS = [
-  'Search "iPhone 15"...',
-  'Try "MacBook Air"...',
-  'Search "Sony headphones"...',
-  'Try "Samsung TV"...',
-  'Search "Apple Watch"...',
-  'Try "PS5"...',
-];
-
-export function useCyclingPlaceholder(interval = 3000): string {
-  const [idx, setIdx] = useState(0);
-  useEffect(() => {
-    const timer = setInterval(() => setIdx(i => (i + 1) % PLACEHOLDERS.length), interval);
-    return () => clearInterval(timer);
-  }, [interval]);
-  return PLACEHOLDERS[idx];
+export function useFeaturedProducts(products: Product[], filters: Filters, sort: SortOption): Product[] {
+  return useMemo(() => applyFiltersAndSort(products, filters, sort), [products, filters, sort]);
 }
 
 /* ================================================================== */

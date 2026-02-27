@@ -3,6 +3,9 @@ import React from 'react';
 import { Product, Platform } from '../types';
 import { getPlatformSearchUrl } from '../config/affiliateLinks';
 
+const getProductLink = (platform: Platform, productName: string, productUrl?: string) =>
+  productUrl || getPlatformSearchUrl(platform, productName);
+
 interface ProductCardProps {
   product: Product;
   onAddToCart: (product: Product, platform: Platform) => void;
@@ -39,86 +42,60 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
     }
   };
 
+  const isCheapest = (platform: Platform) => platform === cheapestPrice.platform;
+
   return (
-    <div className="bg-white dark:bg-gray-800/90 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700/60
-                    overflow-hidden flex flex-col transition-all duration-200
-                    hover:shadow-md dark:hover:shadow-black/30 hover:-translate-y-0.5 group">
-      <div className="relative aspect-square p-4 bg-gray-50 dark:bg-gray-900/50">
+    <div className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden flex flex-col">
+      <div className="relative aspect-square p-4 bg-neutral-50 dark:bg-neutral-800">
         {product.imageUrl ? (
           <img
             src={product.imageUrl}
             alt={product.name}
-            className="w-full h-full object-contain mix-blend-multiply dark:mix-blend-normal
-                       group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-contain"
             onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE; }}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-gray-600">
-            <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
-                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
+          <div className="w-full h-full flex items-center justify-center text-neutral-400">
+            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" /></svg>
           </div>
         )}
         {discountPct > 0 && (
-          <div className="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm">
-            {discountPct}% OFF
-          </div>
+          <span className="absolute top-2 left-2 bg-yellow-400 text-neutral-900 text-xs font-semibold px-2 py-0.5 rounded">
+            {discountPct}% off
+          </span>
         )}
       </div>
 
-      <div className="p-4 flex-1 flex flex-col">
-        <div className="mb-1 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-          {product.brand}
-        </div>
-        <h3 className="font-semibold text-gray-800 dark:text-gray-200 text-sm mb-1 line-clamp-2 leading-snug">
-          {product.name}
-        </h3>
-        <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">{product.quantity}</div>
+      <div className="p-3 flex-1 flex flex-col">
+        <p className="text-xs text-neutral-500 mb-0.5">{product.brand}</p>
+        <h3 className="font-medium text-neutral-900 dark:text-white text-sm line-clamp-2 mb-1">{product.name}</h3>
+        <p className="text-xs text-neutral-500 mb-3">{product.quantity}</p>
 
-        <div className="space-y-2 mt-auto">
+        <div className="space-y-1.5 mt-auto">
           {product.platformPrices.map((pp) => (
-            <div key={pp.platform}
-              className={`flex items-center justify-between p-2 rounded-lg border ${getPlatformColor(pp.platform)}`}>
+            <div
+              key={pp.platform}
+              className={`flex items-center justify-between py-2 px-2.5 rounded-lg ${getPlatformColor(pp.platform)} ${isCheapest(pp.platform) ? 'ring-1 ring-yellow-400' : ''}`}
+            >
+              <div className="flex items-center gap-1.5">
+                <img src={getPlatformIcon(pp.platform)} alt="" className="w-3.5 h-3.5 rounded-full" />
+                <span className="text-xs font-medium">{pp.platform}</span>
+                {isCheapest(pp.platform) && <span className="text-[10px] font-semibold text-yellow-700 dark:text-yellow-400">Best</span>}
+              </div>
               <div className="flex items-center gap-2">
-                <img src={getPlatformIcon(pp.platform)} alt={pp.platform} className="w-4 h-4 rounded-full" />
-                <span className="text-[10px] font-bold uppercase">{pp.platform}</span>
-              </div>
-              <div className="flex flex-col items-end">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] line-through opacity-60">₹{pp.originalPrice}</span>
-                  <span className="text-xs font-bold">₹{pp.price}</span>
-                </div>
-                <div className="text-[8px] opacity-70">Delivery: {pp.deliveryTime}</div>
-              </div>
-              <div className="flex items-center gap-1 ml-1">
-                <a href={getPlatformSearchUrl(pp.platform, product.name)}
-                   target="_blank" rel="noopener noreferrer"
-                   className="w-6 h-6 flex items-center justify-center bg-white dark:bg-gray-800 border border-current
-                              rounded-md hover:bg-current hover:text-white transition-colors"
-                   title={`Open ${product.name} on ${pp.platform}`}>
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-                <button onClick={() => onAddToCart(product, pp.platform)}
-                  className="w-6 h-6 flex items-center justify-center bg-white dark:bg-gray-800 border border-current
-                             rounded-md hover:bg-current hover:text-white transition-colors">
-                  <span className="text-lg leading-none">+</span>
-                </button>
+                <span className="text-xs line-through text-neutral-500">₹{pp.originalPrice}</span>
+                <span className="text-sm font-semibold">₹{pp.price}</span>
+                <a href={getProductLink(pp.platform, product.name, pp.productUrl)} target="_blank" rel="noopener noreferrer" className="text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white" title="Open">↗</a>
+                <button onClick={() => onAddToCart(product, pp.platform)} className="w-6 h-6 flex items-center justify-center rounded bg-neutral-200 dark:bg-neutral-600 hover:bg-yellow-400 hover:text-neutral-900 text-sm font-bold">+</button>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700/50
-                      flex justify-between items-center">
-        <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500">Cheapest at:</span>
-        <span className="text-[10px] font-bold text-green-600 dark:text-green-400">
-          {cheapestPrice.platform} (₹{cheapestPrice.price})
-        </span>
+      <div className="px-3 py-2 bg-neutral-50 dark:bg-neutral-800/80 border-t border-neutral-100 dark:border-neutral-700 flex justify-between items-center text-xs">
+        <span className="text-neutral-500">Lowest</span>
+        <span className="font-semibold text-yellow-600 dark:text-yellow-400">{cheapestPrice.platform} ₹{cheapestPrice.price}</span>
       </div>
     </div>
   );

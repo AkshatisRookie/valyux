@@ -1,4 +1,4 @@
-now /**
+/**
  * EarnKaro Affiliate Link Generator
  * 
  * Wraps product URLs (Amazon, Flipkart, etc.) with EarnKaro Profit Link format.

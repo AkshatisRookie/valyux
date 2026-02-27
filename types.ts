@@ -10,6 +10,7 @@ export interface PlatformPrice {
   price: number;
   originalPrice: number;
   deliveryTime: string;
+  productUrl?: string;  
 }
 
 export interface Product {
@@ -55,4 +56,16 @@ export interface ElectronicsProduct {
   category: string;
   imageUrl: string;
   retailerPrices: RetailerPrice[];
+}
+
+/** Cart item for electronics: one product + chosen retailer offer. */
+export interface ElectronicsCartItem {
+  productId: string;
+  name: string;
+  imageUrl: string;
+  brand: string;
+  retailer: ElectronicsRetailer;
+  price: number;
+  productUrl: string;
+  quantity: number;
 }

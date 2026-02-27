@@ -39,7 +39,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved === 'light' || saved === 'dark' || saved === 'system') return saved;
     } catch { /* ignore */ }
-    return 'system';
+    // Default to dark mode when nothing is stored
+    return 'dark';
   });
 
   const [systemDark, setSystemDark] = useState(() =>

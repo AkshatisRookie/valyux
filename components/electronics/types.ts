@@ -12,8 +12,9 @@ export interface RetailerOffer {
   productUrl: string;
   affiliateUrl?: string;
   inStock: boolean;
-  discount: number;        // percentage
-  offers: string[];        // e.g. ["No-cost EMI", "Bank offer ₹1000"]
+  discount: number;
+  offers: string[];
+  deliveryTime?: string;  // e.g. "1-2 days"
 }
 
 export interface Product {
