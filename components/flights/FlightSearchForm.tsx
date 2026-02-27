@@ -144,7 +144,7 @@ const PassengerPicker: React.FC<{
   );
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative w-full sm:w-auto">
       <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1 ml-1">Travellers</label>
       <button onClick={() => setOpen(!open)}
         className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 rounded-xl px-3 py-2.5
@@ -234,7 +234,7 @@ const FlightSearchForm: React.FC<Props> = ({ onSearch, isLoading }) => {
       </div>
 
       {/* Main row: From / Swap / To / Date / Passengers */}
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-col md:flex-wrap md:flex-row md:items-end gap-3">
         <AirportInput
           label="From" value={from} onChange={setFrom}
           placeholder="City or airport"
@@ -242,11 +242,13 @@ const FlightSearchForm: React.FC<Props> = ({ onSearch, isLoading }) => {
         />
 
         {/* Swap button */}
-        <button type="button" onClick={handleSwap}
+        <button
+          type="button"
+          onClick={handleSwap}
           className="shrink-0 w-10 h-10 rounded-full border-2 border-gray-200 dark:border-gray-700
                      bg-white dark:bg-gray-900 flex items-center justify-center
                      hover:border-sky-400 dark:hover:border-sky-500 hover:shadow-lg
-                     transition-all mb-0.5"
+                     transition-all mb-0.5 mx-auto md:mx-0"
           style={{ transform: `rotate(${swapRotation}deg)`, transition: 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
           <svg className="w-4 h-4 text-sky-600 dark:text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />

@@ -206,31 +206,33 @@ const FlightsPage: React.FC = () => {
           </svg>
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 lg:px-8 pt-12 pb-10">
+        <div className="relative max-w-6xl mx-auto px-4 lg:px-8 pt-10 pb-8 sm:pt-12 sm:pb-10">
           <div className="fl-fade-in-up">
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1 mb-4">
               <span className="text-sky-200 text-xs font-bold">✦ SmartFare</span>
               <span className="text-white/60 text-xs">Find the best value, not just the cheapest</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-2">
+            <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-2 text-center md:text-left">
               Compare Flights
             </h1>
-            <p className="text-sky-200 text-lg font-medium max-w-xl mb-8">
+            <p className="text-sky-200 text-sm sm:text-base md:text-lg font-medium max-w-xl mb-7 md:mb-8 text-center md:text-left mx-auto md:mx-0">
               Search once, compare across MakeMyTrip, Goibibo, Cleartrip & more.
               Our SmartFare algorithm finds you the best overall deal.
             </p>
           </div>
 
           {/* Search form */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl dark:shadow-black/40 p-6 fl-fade-in-up"
-            style={{ animationDelay: '200ms' }}>
+          <div
+            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl dark:shadow-black/40 p-4 sm:p-6 fl-fade-in-up"
+            style={{ animationDelay: '200ms' }}
+          >
             <FlightSearchForm onSearch={handleSearch} isLoading={isLoading || showTakeoff} />
           </div>
         </div>
       </section>
 
       {/* ── Results section ───────────────────────────────────────── */}
-      <div ref={resultsRef} className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
+      <div ref={resultsRef} className="max-w-6xl mx-auto px-4 lg:px-8 py-6 sm:py-8">
         {!hasSearched && !isLoading && (
           <div className="space-y-6">
             <SmartFareExplainer />
@@ -251,7 +253,7 @@ const FlightsPage: React.FC = () => {
         {hasSearched && !isLoading && (
           <div className="space-y-4">
             {/* Sort bar + filter toggle */}
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
               <button onClick={() => setShowFilters(!showFilters)}
                 className="lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700
                            bg-white dark:bg-gray-900 text-sm font-bold text-gray-700 dark:text-gray-300 transition-colors">
@@ -271,10 +273,10 @@ const FlightsPage: React.FC = () => {
             </div>
 
             {/* Main layout: filters sidebar + results */}
-            <div className="flex gap-6">
+            <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
               {/* Sidebar filters (desktop always, mobile toggle) */}
-              <aside className={`shrink-0 w-72 ${showFilters ? 'block' : 'hidden'} lg:block`}>
-                <div className="sticky top-24">
+              <aside className={`shrink-0 w-full lg:w-72 ${showFilters ? 'block' : 'hidden'} lg:block`}>
+                <div className="lg:sticky lg:top-24">
                   <FlightFilters
                     filters={filters}
                     onChange={setFilters}
