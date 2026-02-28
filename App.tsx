@@ -11,7 +11,7 @@ import { CATEGORIES } from './constants';
 import { Product, Platform, CartItem, AppSection, ElectronicsCartItem } from './types';
 import { searchViaGemini } from './services/geminiSearchApi';
 import { useDebounce } from './utils/useDebounce';
-
+import { STATIC_GROCERY_PRODUCTS } from './data/groceryProducts';
 
 const AppContent: React.FC = () => {
   const { pincode, setPincode, hasPincode } = usePincode();
@@ -72,11 +72,12 @@ const AppContent: React.FC = () => {
   }, [debouncedQuery, pincode, hasPincode]);
 
   const displayProducts = useMemo(() => {
-    return liveProducts.filter(p => {
+    const source = debouncedQuery.length >= 2 ? liveProducts : STATIC_GROCERY_PRODUCTS;
+    return source.filter(p => {
       const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
       return matchesCategory;
     });
-  }, [liveProducts, selectedCategory]);
+  }, [liveProducts, selectedCategory, debouncedQuery.length]);
 
   const handleAddToCart = (product: Product, platform: Platform) => {
     setCart(prev => {

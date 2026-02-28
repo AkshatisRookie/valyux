@@ -20,6 +20,12 @@ const PLATFORM_ICONS: Record<Platform, string> = {
   Zepto: 'https://www.zepto.com/favicon.ico',
 };
 
+/* Direct favicons so logos load on mobile (Google s2/favicons can fail there) */
+const RETAILER_ICONS: Record<string, string> = {
+  Amazon: 'https://www.amazon.in/favicon.ico',
+  Flipkart: 'https://www.flipkart.com/favicon.ico',
+};
+
 const CartDrawer: React.FC<CartDrawerProps> = ({
   activeSection,
   groceryItems,
@@ -256,7 +262,14 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                     />
                     <div className="flex-1 min-w-0">
                       <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">{item.name}</h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{item.brand} · {item.retailer}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1.5">
+                        {RETAILER_ICONS[item.retailer] && (
+                          <span className="w-4 h-4 rounded-full shrink-0 overflow-hidden inline-flex items-center justify-center bg-white dark:bg-gray-700 ring-1 ring-gray-200 dark:ring-gray-600">
+                            <img src={RETAILER_ICONS[item.retailer]} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          </span>
+                        )}
+                        {item.brand} · {item.retailer}
+                      </p>
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <span className="font-bold text-sm text-gray-900 dark:text-white">₹{item.price}</span>
                         <div className="flex items-center gap-2">

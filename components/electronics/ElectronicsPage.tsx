@@ -5,6 +5,7 @@ import ElectronicsError from './ElectronicsError';
 import { useElectronicsSearch, useFeaturedProducts } from './hooks';
 import { DEFAULT_FILTERS } from './types';
 import type { Filters, SortOption } from './types';
+import { STATIC_ELECTRONICS_PRODUCTS } from './staticProducts';
 
 const STYLE_ID = 'valyux-electronics';
 const ANIMATION_CSS = `.no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}`;
@@ -58,6 +59,7 @@ const ElectronicsPage: React.FC<ElectronicsPageProps> = ({
   const showLoading = isLoading;
   const showError = !!error && !isLoading;
   const showLanding = !hasSearched && !isLoading && !error;
+  const showStatic = showLanding && searchQuery.trim().length < 2;
 
   return (
     <>
@@ -92,13 +94,15 @@ const ElectronicsPage: React.FC<ElectronicsPageProps> = ({
         </div>
       )}
 
+      {showStatic && <ElectronicsResults products={STATIC_ELECTRONICS_PRODUCTS} onAddToCart={onAddToCart} />}
+
       {showResults && <ElectronicsResults products={filteredResults} onAddToCart={onAddToCart} />}
 
-      {showLoading && filteredResults.length === 0 && <ElectronicsLoading />}
+      {showLoading && filteredResults.length === 0 && !showStatic && <ElectronicsLoading />}
 
       {showError && <ElectronicsError message={error ?? undefined} onRetry={handleRetry} />}
 
-      {!isLoading && filteredResults.length === 0 && !showError && (
+      {!isLoading && filteredResults.length === 0 && !showError && !showStatic && (
         <div className="text-center py-16">
           <p className="text-neutral-500 dark:text-neutral-400 text-sm">
             {searchQuery.trim().length >= 2

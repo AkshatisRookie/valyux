@@ -75,18 +75,22 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
           {product.platformPrices.map((pp) => (
             <div
               key={pp.platform}
-              className={`flex items-center justify-between py-2 px-2.5 rounded-lg ${getPlatformColor(pp.platform)} ${isCheapest(pp.platform) ? 'ring-1 ring-yellow-400' : ''}`}
+              className={`flex items-center justify-between gap-2 py-2 px-2.5 rounded-lg ${getPlatformColor(pp.platform)} ${isCheapest(pp.platform) ? 'ring-1 ring-yellow-400' : ''}`}
             >
-              <div className="flex items-center gap-1.5">
-                <img src={getPlatformIcon(pp.platform)} alt="" className="w-3.5 h-3.5 rounded-full" />
-                <span className="text-xs font-medium">{pp.platform}</span>
-                {isCheapest(pp.platform) && <span className="text-[10px] font-semibold text-yellow-700 dark:text-yellow-400">Best</span>}
+              <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+                <span className="w-3.5 h-3.5 rounded-full shrink-0 overflow-hidden inline-flex items-center justify-center bg-white/80 dark:bg-neutral-700/80 ring-1 ring-black/5 dark:ring-white/10">
+                  <img src={getPlatformIcon(pp.platform)} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                </span>
+                <div className="min-w-0 flex flex-col gap-0.5">
+                  <span className="text-xs font-medium truncate">{pp.platform}{isCheapest(pp.platform) && <span className="ml-1 text-[10px] font-semibold text-yellow-700 dark:text-yellow-400">Best</span>}</span>
+                  {pp.deliveryTime && <span className="text-[10px] text-neutral-500 dark:text-neutral-400 truncate">{pp.deliveryTime}</span>}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <span className="text-xs line-through text-neutral-500">₹{pp.originalPrice}</span>
-                <span className="text-sm font-semibold">₹{pp.price}</span>
-                <a href={getProductLink(pp.platform, product.name, pp.productUrl)} target="_blank" rel="noopener noreferrer" className="text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white" title="Open">↗</a>
-                <button onClick={() => onAddToCart(product, pp.platform)} className="w-6 h-6 flex items-center justify-center rounded bg-neutral-200 dark:bg-neutral-600 hover:bg-yellow-400 hover:text-neutral-900 text-sm font-bold">+</button>
+                <span className="text-sm font-semibold whitespace-nowrap">₹{pp.price}</span>
+                <a href={getProductLink(pp.platform, product.name, pp.productUrl)} target="_blank" rel="noopener noreferrer" className="text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white p-0.5" title="Open">↗</a>
+                <button onClick={() => onAddToCart(product, pp.platform)} className="w-6 h-6 flex items-center justify-center rounded bg-neutral-200 dark:bg-neutral-600 hover:bg-yellow-400 hover:text-neutral-900 text-sm font-bold shrink-0">+</button>
               </div>
             </div>
           ))}
