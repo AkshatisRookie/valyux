@@ -1,7 +1,8 @@
 import React from 'react';
 import { AppSection } from '../types';
+import { FEATURE_ELECTRONICS_PAGE, FEATURE_FLIGHTS_PAGE } from '../config/features';
 import { useTheme } from './ThemeProvider';
-import homelogo from '../assets/valyux-logo.png';
+const valyuxLogo = new URL('../assets/valyux-logo.png', import.meta.url).href;
 
 interface NavbarProps {
   cartCount: number;
@@ -10,20 +11,18 @@ interface NavbarProps {
   onSearchChange: (val: string) => void;
   activeSection: AppSection;
   onSectionChange: (section: AppSection) => void;
-  pincode?: string;
-  onPincodeChange?: (p: string) => void;
 }
 
 /* ------------------------------------------------------------------ */
-/*  Section config — each section has its own accent                   */
+/*  Section config — Grocery live; Electronics & Flights = coming soon */
 /* ------------------------------------------------------------------ */
 
 const SECTIONS: {
   id: AppSection;
   label: string;
   icon: React.ReactNode;
-  activeColor: string;       // light
-  activeColorDark: string;   // dark
+  activeColor: string;
+  activeColorDark: string;
 }[] = [
   {
     id: 'grocery',
@@ -69,92 +68,110 @@ const SECTIONS: {
 
 const Navbar: React.FC<NavbarProps> = ({
   cartCount, onCartClick, searchQuery, onSearchChange, activeSection, onSectionChange,
-  pincode = '', onPincodeChange,
 }) => {
   const { resolved, toggle } = useTheme();
 
+  const groceryPlaceholder = 'Search products to compare availability, prices, etc';
+  const electronicsPlaceholder = 'Search electronics...';
+
   return (
     <nav className="sticky top-0 z-40 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
-      <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2 shrink-0 cursor-pointer" onClick={() => window.location.reload()}>
-          <img
-            src={homelogo}
-            alt="Valyux"
-            className="w-9 h-9 rounded-lg object-contain bg-neutral-900 dark:bg-neutral-800 p-0.5"
-          />
-          <span className="hidden sm:inline-block text-xl font-bold text-neutral-900 dark:text-white">valyux</span>
+      <div className="max-w-6xl mx-auto px-4 pt-2 pb-2 sm:pt-2.5 sm:pb-2 flex flex-col gap-2">
+        {/* Row 1: Valyux brand | theme + cart */}
+        <div className="flex flex-row items-center justify-between gap-3 w-full min-h-0">
+          <button
+            type="button"
+            className="flex items-center gap-1.5 sm:gap-2 shrink-0 cursor-pointer text-left min-w-0"
+            onClick={() => window.location.reload()}
+          >
+            <img
+              src={valyuxLogo}
+              alt="Valyux"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg object-contain shrink-0"
+            />
+            <span className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight leading-none whitespace-nowrap">
+              Valyux
+            </span>
+          </button>
+
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            <button
+              onClick={toggle}
+              aria-label="Toggle theme"
+              className="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500"
+            >
+              {resolved === 'dark' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              )}
+            </button>
+
+            <button
+              onClick={onCartClick}
+              className="relative flex items-center gap-1.5 sm:gap-2 bg-yellow-400 hover:bg-yellow-500 text-neutral-900 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg font-semibold text-sm"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+              Cart
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs min-w-[18px] h-[18px] flex items-center justify-center rounded-full">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
-        <div className="flex-1 max-w-xl">
+        {/* Row 2: search — full width below */}
+        <div className="w-full min-w-0">
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
             </span>
             <input
               type="text"
-              placeholder={activeSection === 'grocery' ? 'Search products...' : 'Search electronics...'}
-              className="w-full bg-neutral-100 dark:bg-neutral-800 border-0 rounded-lg py-2.5 pl-9 pr-4 text-sm outline-none placeholder:text-neutral-500"
+              placeholder={activeSection === 'grocery' ? groceryPlaceholder : electronicsPlaceholder}
+              className="w-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full py-2.5 pl-11 pr-4 text-sm outline-none focus:ring-2 focus:ring-yellow-400/50 focus:border-yellow-400 placeholder:text-neutral-400"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
             />
           </div>
         </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={toggle}
-            aria-label="Toggle theme"
-            className="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500"
-          >
-            {resolved === 'dark' ? (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-              </svg>
-            )}
-          </button>
-
-          <button
-            onClick={() => onPincodeChange?.('')}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-sm text-neutral-600 dark:text-neutral-400"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-            {pincode ? pincode : 'Location'}
-          </button>
-
-          <button
-            onClick={onCartClick}
-            className="relative flex items-center gap-2 bg-yellow-400 hover:bg-yellow-500 text-neutral-900 px-4 py-2 rounded-lg font-semibold text-sm"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-            Cart
-            {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs min-w-[18px] h-[18px] flex items-center justify-center rounded-full">
-                {cartCount}
-              </span>
-            )}
-          </button>
-        </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 border-t border-neutral-100 dark:border-neutral-800">
-        <div className="flex gap-0">
+        <div className="flex gap-0 overflow-x-auto no-scrollbar">
           {SECTIONS.map(section => {
             const isActive = activeSection === section.id;
+            const showSoonBadge =
+              (section.id === 'electronics' && !FEATURE_ELECTRONICS_PAGE) ||
+              (section.id === 'flights' && !FEATURE_FLIGHTS_PAGE);
+
             return (
               <button
                 key={section.id}
+                type="button"
                 onClick={() => onSectionChange(section.id)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 -mb-px
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 -mb-px shrink-0
                   ${isActive ? `${section.activeColor} ${section.activeColorDark}` : 'border-transparent text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
               >
                 {section.icon}
-                {section.label}
+                <span>{section.label}</span>
+                {showSoonBadge && (
+                  <span className="ml-0.5 rounded-full bg-neutral-200 dark:bg-neutral-700 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-600 dark:text-neutral-400">
+                    Soon
+                  </span>
+                )}
               </button>
             );
           })}

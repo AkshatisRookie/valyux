@@ -4,23 +4,23 @@ import ProductCard from './components/ProductCard';
 import CartDrawer from './components/CartDrawer';
 import ElectronicsPage from './components/electronics/ElectronicsPage';
 import FlightsPage from './components/flights/FlightsPage';
+import ComingSoonPlaceholder from './components/ComingSoonPlaceholder';
 import { ThemeProvider } from './components/ThemeProvider';
+import { FEATURE_ELECTRONICS_PAGE, FEATURE_FLIGHTS_PAGE } from './config/features';
 import { PincodeProvider, usePincode } from './context/PincodeContext';
 import { PincodeModal } from './components/PincodeModal';
-import { CATEGORIES } from './constants';
 import { Product, Platform, CartItem, AppSection, ElectronicsCartItem } from './types';
-import { searchViaGemini } from './services/geminiSearchApi';
+import { searchGroupQuickCommerce } from './services/quickCommerceApi';
 import { useDebounce } from './utils/useDebounce';
-import { STATIC_GROCERY_PRODUCTS } from './data/groceryProducts';
+import GroceryPlatformLogos from './components/GroceryPlatformLogos';
 
 const AppContent: React.FC = () => {
-  const { pincode, setPincode, hasPincode } = usePincode();
+  const { pincode, addressLabel, lat, lon, setDeliveryLocation, hasPincode, hasCoords, etaLoading, etaError, openByPlatform } = usePincode();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [electronicsCart, setElectronicsCart] = useState<ElectronicsCartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [electronicsSearchQuery, setElectronicsSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
   const [activeSection, setActiveSection] = useState<AppSection>('grocery');
 
   const [liveProducts, setLiveProducts] = useState<Product[]>([]);
@@ -31,7 +31,7 @@ const AppContent: React.FC = () => {
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    if (!hasPincode || !debouncedQuery || debouncedQuery.length < 2) {
+    if (!hasPincode || !hasCoords || !debouncedQuery || debouncedQuery.length < 2) {
       setLiveProducts([]);
       setSearchError(null);
       return;
@@ -42,20 +42,21 @@ const AppContent: React.FC = () => {
       setIsSearching(true);
       setSearchError(null);
       try {
-        const result = await searchViaGemini(debouncedQuery, pincode, 'grocery');
-        const products = (result.results || []).map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          brand: p.brand,
-          quantity: p.quantity || '',
-          imageUrl: p.imageUrl,
-          category: p.category,
-          platformPrices: (p.platformPrices || []).map((pp: any) => ({
-            platform: pp.platform,
-            price: pp.price,
-            originalPrice: pp.originalPrice,
-            deliveryTime: pp.deliveryTime,
-            productUrl: pp.productUrl,
+        const result = await searchGroupQuickCommerce(debouncedQuery, lat, lon, pincode);
+        const products = (result.results || []).map((p: Record<string, unknown>) => ({
+          id: String(p.id ?? ''),
+          name: String(p.name ?? ''),
+          brand: String(p.brand ?? ''),
+          quantity: String(p.quantity ?? ''),
+          imageUrl: String(p.imageUrl ?? ''),
+          category: String(p.category ?? 'Other'),
+          platformPrices: (Array.isArray(p.platformPrices) ? p.platformPrices : []).map((pp: Record<string, unknown>) => ({
+            platform: pp.platform as Platform,
+            price: Number(pp.price) || 0,
+            originalPrice: Number(pp.originalPrice) || 0,
+            deliveryTime: String(pp.deliveryTime ?? '—'),
+            productUrl: typeof pp.productUrl === 'string' ? pp.productUrl : undefined,
+            externalItemId: typeof pp.externalItemId === 'string' ? pp.externalItemId : undefined,
           })),
         }));
         setLiveProducts(products);
@@ -69,15 +70,17 @@ const AppContent: React.FC = () => {
     };
     fetchLive();
     return () => { abortRef.current?.abort(); };
-  }, [debouncedQuery, pincode, hasPincode]);
+  }, [debouncedQuery, pincode, hasPincode, hasCoords, lat, lon]);
 
   const displayProducts = useMemo(() => {
-    const source = debouncedQuery.length >= 2 ? liveProducts : STATIC_GROCERY_PRODUCTS;
-    return source.filter(p => {
-      const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
-      return matchesCategory;
-    });
-  }, [liveProducts, selectedCategory, debouncedQuery.length]);
+    if (debouncedQuery.length < 2) return [];
+    return liveProducts
+      .map((p) => {
+        const filtered = p.platformPrices.filter((pp) => openByPlatform[pp.platform] !== false);
+        return filtered.length > 0 ? { ...p, platformPrices: filtered } : null;
+      })
+      .filter((p): p is Product => p !== null);
+  }, [liveProducts, debouncedQuery.length, openByPlatform]);
 
   const handleAddToCart = (product: Product, platform: Platform) => {
     setCart(prev => {
@@ -88,19 +91,25 @@ const AppContent: React.FC = () => {
             ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      return [...prev, { product, selectedPlatform: platform, quantity: 1 }];
+      return [...prev, { product, selectedPlatform: platform, quantity: 1, optimizedBuyUrl: undefined, optimizedPlatform: undefined }];
     });
     setIsCartOpen(true);
   };
 
+  const handleApplyGroceryOptimization = (items: CartItem[]) => {
+    setCart(items);
+  };
+
   const handleUpdateQuantity = (productId: string, platform: string, delta: number) => {
     setCart(prev =>
-      prev.map(item => {
-        if (item.product.id === productId && item.selectedPlatform === platform) {
-          return { ...item, quantity: Math.max(0, item.quantity + delta) };
-        }
-        return item;
-      }).filter(item => item.quantity > 0)
+      prev
+        .map(item => {
+          if (item.product.id === productId && item.selectedPlatform === platform) {
+            return { ...item, quantity: Math.max(0, item.quantity + delta) };
+          }
+          return item;
+        })
+        .filter(item => item.quantity > 0)
     );
   };
 
@@ -144,14 +153,14 @@ const AppContent: React.FC = () => {
 
   if (!hasPincode) {
     return (
-      <div className="min-h-screen flex flex-col transition-colors duration-300">
-        <PincodeModal onConfirm={setPincode} />
+      <div className="min-h-screen flex flex-col bg-white dark:bg-neutral-950 transition-colors duration-300">
+        <PincodeModal onConfirm={setDeliveryLocation} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col transition-colors duration-300">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-neutral-950 transition-colors duration-300">
       <Navbar
         cartCount={cartCount}
         onCartClick={() => setIsCartOpen(true)}
@@ -159,44 +168,48 @@ const AppContent: React.FC = () => {
         onSearchChange={activeSection === 'grocery' ? setSearchQuery : setElectronicsSearchQuery}
         activeSection={activeSection}
         onSectionChange={setActiveSection}
-        pincode={pincode}
-        onPincodeChange={setPincode}
       />
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
         {activeSection === 'grocery' && (
           <>
-            <div className="mb-6 flex items-center gap-3">
-              <div>
-                <h1 className="text-lg font-semibold text-neutral-900 dark:text-white">Compare prices</h1>
-                <p className="text-sm text-neutral-500 mt-0.5">
-                  Pincode {pincode} · BigBasket, Blinkit, Instamart, Jiomart, Zepto
+            <div className="mb-4 flex flex-col items-center text-center sm:mb-5">
+              <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white tracking-tight">
+                Compare &amp; buy grocery at the best price
+              </h1>
+              <div className="mt-2 max-w-lg px-1">
+                <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                  {addressLabel ? (
+                    <>
+                      <span className="font-medium">{addressLabel}</span>
+                      <span className="mx-1 text-neutral-400">·</span>
+                    </>
+                  ) : null}
+                  <span className="text-neutral-500 dark:text-neutral-400">Pincode {pincode}</span>
                 </p>
+                <button
+                  type="button"
+                  onClick={() => setDeliveryLocation({ pincode: '', addressLabel: '' })}
+                  className="mt-1.5 text-xs font-medium text-yellow-700 hover:text-yellow-600 dark:text-yellow-400 dark:hover:text-yellow-300 underline underline-offset-2"
+                >
+                  Change location
+                </button>
+                {etaLoading && <p className="text-xs text-neutral-500 mt-2">Loading delivery times…</p>}
+                {etaError && <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">{etaError}</p>}
+                {!hasCoords && hasPincode && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                    Locating your area for live prices…
+                  </p>
+                )}
               </div>
             </div>
 
-            <div className="mb-6 overflow-x-auto pb-2 -mx-4 px-4 no-scrollbar">
-              <div className="flex gap-2">
-                {CATEGORIES.map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${
-                      selectedCategory === cat
-                        ? 'bg-yellow-400 text-neutral-900'
-                        : 'bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <GroceryPlatformLogos />
 
             {searchQuery.length >= 2 && (
-              <div className="mb-4 text-sm text-neutral-500">
+              <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-neutral-500">
                 {isSearching && <span>Searching...</span>}
-                {!isSearching && liveProducts.length > 0 && <span>{liveProducts.length} results</span>}
+                {!isSearching && liveProducts.length > 0 && <span>{displayProducts.length} results</span>}
                 {searchError && <span className="text-red-600 dark:text-red-400">{searchError}</span>}
               </div>
             )}
@@ -225,7 +238,7 @@ const AppContent: React.FC = () => {
             {!isSearching && displayProducts.length === 0 && (
               <div className="text-center py-16">
                 <p className="text-neutral-500 dark:text-neutral-400 text-sm">
-                  {searchQuery.length >= 2 ? 'No results. Try "milk", "bread", or "rice".' : 'Search above to compare prices.'}
+                  {searchQuery.length >= 2 ? 'No results. Try "milk", "bread", or "rice".' : 'Search for products to compare prices.'}
                 </p>
                 {searchQuery.length >= 2 && (
                   <button onClick={() => setSearchQuery('')} className="mt-3 text-sm font-medium text-yellow-600 dark:text-yellow-400">
@@ -237,7 +250,7 @@ const AppContent: React.FC = () => {
           </>
         )}
 
-        {activeSection === 'electronics' && (
+        {activeSection === 'electronics' && FEATURE_ELECTRONICS_PAGE && (
           <ElectronicsPage
             pincode={pincode}
             searchQuery={electronicsSearchQuery}
@@ -245,8 +258,20 @@ const AppContent: React.FC = () => {
             onAddToCart={handleAddToElectronicsCart}
           />
         )}
+        {activeSection === 'electronics' && !FEATURE_ELECTRONICS_PAGE && (
+          <ComingSoonPlaceholder
+            title="Electronics"
+            description="Compare electronics across retailers."
+          />
+        )}
 
-        {activeSection === 'flights' && <FlightsPage />}
+        {activeSection === 'flights' && FEATURE_FLIGHTS_PAGE && <FlightsPage />}
+        {activeSection === 'flights' && !FEATURE_FLIGHTS_PAGE && (
+          <ComingSoonPlaceholder
+            title="Flights"
+            description="Search and compare flights across OTAs."
+          />
+        )}
       </main>
 
       {isCartOpen && (
@@ -257,6 +282,7 @@ const AppContent: React.FC = () => {
           onClose={() => setIsCartOpen(false)}
           onUpdateGroceryQuantity={handleUpdateQuantity}
           onUpdateElectronicsQuantity={handleUpdateElectronicsQuantity}
+          onApplyGroceryOptimization={handleApplyGroceryOptimization}
         />
       )}
     </div>

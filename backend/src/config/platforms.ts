@@ -2,9 +2,9 @@
  * Platform configuration for all supported quick commerce platforms.
  */
 
-export type Platform = 'BigBasket' | 'Blinkit' | 'Instamart' | 'Jiomart' | 'Zepto';
+export type Platform = 'BigBasket' | 'Blinkit' | 'Instamart' | 'Zepto';
 
-export const ALL_PLATFORMS: Platform[] = ['BigBasket', 'Blinkit', 'Instamart', 'Jiomart', 'Zepto'];
+export const ALL_PLATFORMS: Platform[] = ['BigBasket', 'Blinkit', 'Instamart', 'Zepto'];
 
 export interface PlatformMeta {
   name: Platform;
@@ -43,12 +43,5 @@ export const PLATFORM_META: Record<Platform, PlatformMeta> = {
     baseUrl: 'https://www.swiggy.com/instamart',
     avgDeliveryTime: '12 mins',
     color: '#FC8019',
-  },
-  Jiomart: {
-    name: 'Jiomart',
-    displayName: 'JioMart',
-    baseUrl: 'https://www.jiomart.com',
-    avgDeliveryTime: '20 mins',
-    color: '#0078AD',
   },
 };

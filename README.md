@@ -18,19 +18,23 @@ View your app in AI Studio: https://ai.studio/apps/drive/1durYjZBaqNv5ZohTxeMF8u
    ```
 2. Create a `.env` file in the project root (copy from `env.example`):
    - **Gemini (optional):** `GEMINI_API_KEY=your_api_key_here`
-   - **Affiliate links (optional):** Set checkout URLs per platform. If unset, default platform homepages are used (no 3rd party API):
-     ```
-     AFFILIATE_BIGBASKET=https://...
-     AFFILIATE_BLINKIT=https://...
-     AFFILIATE_INSTAMART=https://...
-     AFFILIATE_JIOMART=https://...
-     AFFILIATE_ZEPTO=https://...
-     ```
+   - **QcomPl (grocery live search):** For live Blinkit & Swiggy Instamart prices, set `QCOMPL_API_URL` and `QCOMPL_API_KEY` in the backend `.env`. Start the backend with `cd backend && npm run dev`.
+   - **Address search (Uber-style):** The location picker calls `GET /api/location/autocomplete` on the same backend (OpenStreetMap Nominatim, India). Run the backend and set `VALYUX_API_URL` in the frontend `.env` so autocomplete works.
 3. Run the app:
    ```bash
    npm run dev
    ```
    Opens at http://localhost:1234 (Parcel default).
+
+### Backend: fuzzy merge & edge-case tests
+
+QuickCommerce search results are merged with **string similarity + quantity matching**. Automated checks:
+
+```bash
+cd backend && npm run test:qc
+```
+
+Covers: multi-platform merge, **1 L vs 500 ml split**, quantity formatting (`500 ml` vs `500ml`), empty brands, duplicate offers per platform, unmapped platforms (e.g. DMart), missing quantity fields, and price edge cases.
 
 ## Deploy
 

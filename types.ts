@@ -1,5 +1,5 @@
 
-export type Platform = 'BigBasket' | 'Blinkit' | 'Instamart' | 'Jiomart' | 'Zepto';
+export type Platform = 'BigBasket' | 'Blinkit' | 'Instamart' | 'Zepto';
 
 export type ElectronicsRetailer = 'Amazon' | 'Flipkart';
 
@@ -10,7 +10,9 @@ export interface PlatformPrice {
   price: number;
   originalPrice: number;
   deliveryTime: string;
-  productUrl?: string;  
+  productUrl?: string;
+  /** From QuickCommerce search / item APIs */
+  externalItemId?: string;
 }
 
 export interface Product {
@@ -27,6 +29,10 @@ export interface CartItem {
   product: Product;
   selectedPlatform: Platform;
   quantity: number;
+  /** Set after "Optimize with AI" — deeplink for cheapest platform for this line */
+  optimizedBuyUrl?: string;
+  /** Platform the optimized link targets */
+  optimizedPlatform?: Platform;
 }
 
 export interface AIAnalysis {

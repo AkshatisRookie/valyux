@@ -7,7 +7,7 @@ const SCRAPER_API_URL = process.env.SCRAPER_API_URL || '';
 const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY || '';
 
 /** Grocery platforms */
-const GROCERY_PLATFORMS: Platform[] = ['BigBasket', 'Blinkit', 'Instamart', 'Jiomart', 'Zepto'];
+const GROCERY_PLATFORMS: Platform[] = ['BigBasket', 'Blinkit', 'Instamart', 'Zepto'];
 
 /** Electronics platforms */
 const ELECTRONICS_PLATFORMS = ['Amazon', 'Flipkart'] as const;
@@ -27,7 +27,6 @@ function buildProductUrl(platform: string, query: string): string {
       BigBasket: '/ps/?q=',
       Blinkit: '/s/?q=',
       Instamart: '?q=',
-      Jiomart: '/search?q=',
       Zepto: '/search?q=',
     };
     return `${base}${paths[platform] || '/search?q='}${encodeURIComponent(query)}`;

@@ -15,7 +15,7 @@
   <style>
     :root {
       --font-body: 'DM Sans', system-ui, sans-serif;
-      --bg-app: #f5f5f5;
+      --bg-app: #ffffff;
       --bg-card: #ffffff;
       --text-primary: #1a1a1a;
       --text-muted: #737373;
@@ -39,13 +39,23 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
-  <!-- Prevent flash of wrong theme (default to dark) -->
+  <!-- Prevent flash of wrong theme (default to light / white) -->
   <script>
     (function() {
       var saved = localStorage.getItem('valyux-theme');
-      // Default to dark when no preference is stored.
-      if (!saved || saved === 'dark') {
-        document.documentElement.classList.add('dark');
+      var root = document.documentElement;
+      if (saved === 'dark') {
+        root.classList.add('dark');
+      } else if (saved === 'light') {
+        root.classList.remove('dark');
+      } else if (saved === 'system') {
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          root.classList.add('dark');
+        } else {
+          root.classList.remove('dark');
+        }
+      } else {
+        root.classList.remove('dark');
       }
     })();
   </script>

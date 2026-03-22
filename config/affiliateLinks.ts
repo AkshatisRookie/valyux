@@ -4,7 +4,6 @@ const DEFAULT_URLS: Record<Platform, string> = {
   BigBasket: 'https://www.bigbasket.com',
   Blinkit: 'https://blinkit.com',
   Instamart: 'https://www.swiggy.com/instamart',
-  Jiomart: 'https://www.jiomart.com',
   Zepto: 'https://www.zepto.com',
 };
 
@@ -13,7 +12,6 @@ const SEARCH_PATHS: Record<Platform, string> = {
   BigBasket: '/ps/?q=',
   Blinkit: '/s/?q=',
   Instamart: '?q=',
-  Jiomart: '/search?q=',
   Zepto: '/search?q=',
 };
 
@@ -22,7 +20,6 @@ const AFFILIATE_URLS: Record<Platform, string> = {
   BigBasket: process.env.AFFILIATE_BIGBASKET || DEFAULT_URLS.BigBasket,
   Blinkit: process.env.AFFILIATE_BLINKIT || DEFAULT_URLS.Blinkit,
   Instamart: process.env.AFFILIATE_INSTAMART || DEFAULT_URLS.Instamart,
-  Jiomart: process.env.AFFILIATE_JIOMART || DEFAULT_URLS.Jiomart,
   Zepto: process.env.AFFILIATE_ZEPTO || DEFAULT_URLS.Zepto,
 };
 

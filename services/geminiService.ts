@@ -2,18 +2,38 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { CartItem, AIAnalysis, Platform } from "../types";
 
-const PLATFORMS: Platform[] = ['BigBasket', 'Blinkit', 'Instamart', 'Jiomart', 'Zepto'];
+const PLATFORMS: Platform[] = ['BigBasket', 'Blinkit', 'Instamart', 'Zepto'];
 
-function getFallbackAnalysis(items: CartItem[]): AIAnalysis {
-  const totals = PLATFORMS.map(p => ({
+function getOpenPlatforms(openByPlatform: Partial<Record<Platform, boolean>>): Platform[] {
+  return PLATFORMS.filter(p => openByPlatform[p] !== false);
+}
+
+function getFallbackAnalysis(
+  items: CartItem[],
+  openByPlatform?: Partial<Record<Platform, boolean>>
+): AIAnalysis {
+  const platforms = openByPlatform ? getOpenPlatforms(openByPlatform) : PLATFORMS;
+  const totals = platforms.map(p => ({
     platform: p,
     total: items.reduce((acc, item) => {
       const price = item.product.platformPrices.find(pp => pp.platform === p)?.price || 0;
       return acc + (price * item.quantity);
     }, 0)
-  }));
+  })).filter(t => t.total > 0);
+  if (totals.length === 0) {
+    return {
+      cheapestPlatformTotal: { platform: PLATFORMS[0], total: 0 },
+      optimalSplitTotal: 0,
+      savingsVsHighest: 0,
+      recommendation: 'Add items to your cart to see savings.',
+    };
+  }
   const optimalSplit = items.reduce((acc, item) => {
-    const minPrice = Math.min(...item.product.platformPrices.map(pp => pp.price));
+    const openPrices = openByPlatform
+      ? item.product.platformPrices.filter(pp => openByPlatform[pp.platform] !== false)
+      : item.product.platformPrices;
+    if (openPrices.length === 0) return acc;
+    const minPrice = Math.min(...openPrices.map(pp => pp.price));
     return acc + (minPrice * item.quantity);
   }, 0);
   const cheapest = totals.reduce((prev, curr) => (prev.total < curr.total ? prev : curr));
@@ -52,29 +72,34 @@ function normalizeAnalysis(raw: unknown): AIAnalysis | null {
   };
 }
 
-const ai = new GoogleGenAI({
-	apiKey:
-		process.env.GEMINI_API_KEY ||
-		process.env.API_KEY ||
-		"AIzaSyA8vAtCfHVBO05Y2tJUEJtqIppYH_GpyU0",
-});
+const geminiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || '';
+const ai = geminiKey ? new GoogleGenAI({ apiKey: geminiKey }) : null;
 
-export const analyzeCartCheapest = async (items: CartItem[]): Promise<AIAnalysis> => {
+export const analyzeCartCheapest = async (
+  items: CartItem[],
+  openByPlatform?: Partial<Record<Platform, boolean>>
+): Promise<AIAnalysis> => {
   if (items.length === 0) {
     throw new Error("Cart is empty");
   }
 
+  if (!ai) {
+    return getFallbackAnalysis(items, openByPlatform);
+  }
+
+  const openPlatforms = openByPlatform ? getOpenPlatforms(openByPlatform) : PLATFORMS;
   const cartData = items.map(item => ({
     name: item.product.name,
     quantity: item.quantity,
-    prices: item.product.platformPrices.reduce((acc, p) => ({ ...acc, [p.platform]: p.price }), {})
+    prices: item.product.platformPrices
+      .filter(pp => openPlatforms.includes(pp.platform))
+      .reduce((acc, p) => ({ ...acc, [p.platform]: p.price }), {})
   }));
 
   const prompt = `Analyze this grocery cart data and provide a summary of savings. 
   Cart Items: ${JSON.stringify(cartData)}
   
-  Calculate:
-  1. The total if bought entirely from BigBasket, Blinkit, Instamart, Jiomart, or Zepto.
+  Calculate (only consider platforms that appear in the prices object for each item):
   2. The absolute cheapest total if we split the order (buying each item where it's cheapest).
   3. A friendly recommendation on where to buy.
   Return valid JSON only.`;
@@ -111,9 +136,15 @@ export const analyzeCartCheapest = async (items: CartItem[]): Promise<AIAnalysis
       '';
     const parsed = rawText ? (() => { try { return JSON.parse(rawText.replace(/^[\s\S]*?(\{[\s\S]*\})[\s\S]*$/, '$1')); } catch { return null; } })() : null;
     const normalized = parsed ? normalizeAnalysis(parsed) : null;
-    if (normalized) return normalized;
-    return getFallbackAnalysis(items);
+    if (normalized) {
+      const openPlatforms = openByPlatform ? getOpenPlatforms(openByPlatform) : PLATFORMS;
+      if (openPlatforms.length > 0 && !openPlatforms.includes(normalized.cheapestPlatformTotal.platform)) {
+        return getFallbackAnalysis(items, openByPlatform);
+      }
+      return normalized;
+    }
+    return getFallbackAnalysis(items, openByPlatform);
   } catch {
-    return getFallbackAnalysis(items);
+    return getFallbackAnalysis(items, openByPlatform);
   }
 };

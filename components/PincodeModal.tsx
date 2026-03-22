@@ -1,30 +1,131 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { fetchAddressSuggestions, type AddressSuggestion } from '../services/locationApi';
+import { geocodePincode } from '../services/pincodeGeocodeApi';
+import { useDebounce } from '../utils/useDebounce';
 
-const PINCODE_KEY = 'valyux-pincode';
+const STORAGE_KEY = 'valyux-location';
+const LEGACY_PINCODE_KEY = 'valyux-pincode';
 
-export function getStoredPincode(): string {
-  if (typeof window === 'undefined') return '';
-  return localStorage.getItem(PINCODE_KEY) || '';
+export interface StoredLocation {
+  pincode: string;
+  addressLabel: string;
+  /** Required for live QuickCommerce search / ETA */
+  lat?: string;
+  lon?: string;
 }
 
-export function setStoredPincode(pincode: string): void {
+export function getStoredLocation(): StoredLocation {
+  if (typeof window === 'undefined') return { pincode: '', addressLabel: '' };
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<StoredLocation>;
+      if (parsed.pincode && /^\d{6}$/.test(parsed.pincode)) {
+        return {
+          pincode: parsed.pincode,
+          addressLabel: typeof parsed.addressLabel === 'string' ? parsed.addressLabel : '',
+          lat: typeof parsed.lat === 'string' && parsed.lat ? parsed.lat : undefined,
+          lon: typeof parsed.lon === 'string' && parsed.lon ? parsed.lon : undefined,
+        };
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  const legacy = localStorage.getItem(LEGACY_PINCODE_KEY);
+  if (legacy && /^\d{6}$/.test(legacy.trim())) {
+    return { pincode: legacy.trim(), addressLabel: '', lat: undefined, lon: undefined };
+  }
+  return { pincode: '', addressLabel: '' };
+}
+
+export function setStoredLocation(loc: StoredLocation): void {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(PINCODE_KEY, pincode.trim());
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(loc));
+  try {
+    localStorage.removeItem(LEGACY_PINCODE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** @deprecated use getStoredLocation */
+export function getStoredPincode(): string {
+  return getStoredLocation().pincode;
+}
+
+/** @deprecated use setStoredLocation */
+export function setStoredPincode(pincode: string): void {
+  setStoredLocation({ pincode: pincode.trim(), addressLabel: '' });
 }
 
 interface PincodeModalProps {
-  onConfirm: (pincode: string) => void;
+  onConfirm: (location: StoredLocation) => void;
 }
 
 export const PincodeModal: React.FC<PincodeModalProps> = ({ onConfirm }) => {
-  const [pincode, setPincode] = useState('');
+  const [query, setQuery] = useState('');
+  const [manualPincode, setManualPincode] = useState('');
+  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [showManual, setShowManual] = useState(false);
+  const [highlightIndex, setHighlightIndex] = useState(-1);
+  const [manualLoading, setManualLoading] = useState(false);
+  const listRef = useRef<HTMLUListElement>(null);
+  const debouncedQuery = useDebounce(query, 400);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (debouncedQuery.length < 3) {
+      setSuggestions([]);
+      setSearchError(null);
+      setHighlightIndex(-1);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setSearchError(null);
+
+    fetchAddressSuggestions(debouncedQuery)
+      .then((results) => {
+        if (!cancelled) {
+          setSuggestions(results);
+          setHighlightIndex(results.length > 0 ? 0 : -1);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setSuggestions([]);
+          setSearchError(err instanceof Error ? err.message : 'Could not search addresses');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedQuery]);
+
+  const selectSuggestion = (s: AddressSuggestion) => {
+    const loc: StoredLocation = {
+      pincode: s.pincode,
+      addressLabel: s.label,
+      lat: s.lat,
+      lon: s.lon,
+    };
+    setStoredLocation(loc);
+    onConfirm(loc);
+  };
+
+  const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = pincode.trim();
+    const trimmed = manualPincode.replace(/\D/g, '');
     if (!trimmed) {
-      setError('Please enter your pincode');
+      setError('Enter a 6-digit pincode');
       return;
     }
     if (!/^\d{6}$/.test(trimmed)) {
@@ -32,34 +133,147 @@ export const PincodeModal: React.FC<PincodeModalProps> = ({ onConfirm }) => {
       return;
     }
     setError('');
-    setStoredPincode(trimmed);
-    onConfirm(trimmed);
+    const label = query.trim() || `Pincode ${trimmed}`;
+    setManualLoading(true);
+    try {
+      const geo = await geocodePincode(trimmed);
+      const loc: StoredLocation = {
+        pincode: trimmed,
+        addressLabel: label || geo.label,
+        lat: geo.lat,
+        lon: geo.lon,
+      };
+      setStoredLocation(loc);
+      onConfirm(loc);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not find this pincode on the map');
+    } finally {
+      setManualLoading(false);
+    }
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (suggestions.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightIndex((i) => Math.min(i + 1, suggestions.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightIndex((i) => Math.max(i - 1, 0));
+    } else if (e.key === 'Enter' && highlightIndex >= 0) {
+      e.preventDefault();
+      selectSuggestion(suggestions[highlightIndex]);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-lg max-w-sm w-full p-6 border border-neutral-200 dark:border-neutral-700">
-        <h2 className="text-lg font-semibold text-neutral-900 dark:text-white mb-1">Delivery pincode</h2>
-        <p className="text-sm text-neutral-500 mb-4">We&apos;ll show delivery times for your area.</p>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <input
-            type="text"
-            inputMode="numeric"
-            maxLength={6}
-            placeholder="6-digit pincode"
-            value={pincode}
-            onChange={(e) => {
-              setPincode(e.target.value.replace(/\D/g, ''));
-              setError('');
-            }}
-            className="w-full px-4 py-3 text-center text-lg font-medium tracking-widest rounded-lg border border-neutral-200 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-800 outline-none focus:border-yellow-500"
-            autoFocus
-          />
-          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-          <button type="submit" className="w-full py-3 bg-yellow-400 hover:bg-yellow-500 text-neutral-900 font-semibold rounded-lg">
-            Continue
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 dark:bg-black/60 p-4">
+      <div
+        className="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col border border-neutral-200 dark:border-neutral-700"
+        role="dialog"
+        aria-labelledby="location-title"
+      >
+        <div className="p-5 pb-3 border-b border-neutral-100 dark:border-neutral-800">
+          <h2 id="location-title" className="text-lg font-bold text-neutral-900 dark:text-white">
+            Where should we deliver?
+          </h2>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
+            Search for your street, area, or landmark. We use your pincode for prices and delivery.
+          </p>
+        </div>
+
+        <div className="p-5 flex-1 overflow-y-auto space-y-4">
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </span>
+            <input
+              type="text"
+              placeholder="Type address, area, or landmark…"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setError('');
+              }}
+              onKeyDown={onKeyDown}
+              className="w-full pl-11 pr-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-yellow-400/60 focus:border-yellow-400"
+              autoFocus
+              autoComplete="off"
+              autoCorrect="off"
+            />
+            {loading && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-neutral-400">Searching…</span>
+            )}
+          </div>
+
+          {searchError && (
+            <p className="text-amber-700 dark:text-amber-400 text-xs">
+              {searchError} — use pincode below or start the backend (<code className="bg-neutral-100 dark:bg-neutral-800 px-1 rounded">cd backend && npm run dev</code>).
+            </p>
+          )}
+
+          {query.length >= 3 && !loading && suggestions.length === 0 && !searchError && (
+            <p className="text-sm text-neutral-500">No matches with a pincode. Try another search or enter your pincode below.</p>
+          )}
+
+          {suggestions.length > 0 && (
+            <ul ref={listRef} className="rounded-xl border border-neutral-200 dark:border-neutral-700 divide-y divide-neutral-100 dark:divide-neutral-800 overflow-hidden max-h-56 overflow-y-auto">
+              {suggestions.map((s, idx) => (
+                <li key={`${s.id}-${idx}`}>
+                  <button
+                    type="button"
+                    onClick={() => selectSuggestion(s)}
+                    className={`w-full text-left px-4 py-3 text-sm transition-colors ${
+                      idx === highlightIndex
+                        ? 'bg-yellow-50 dark:bg-yellow-900/20'
+                        : 'bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800'
+                    }`}
+                  >
+                    <div className="font-medium text-neutral-900 dark:text-white line-clamp-2">{s.label}</div>
+                    <div className="text-xs text-neutral-500 mt-0.5 line-clamp-1">{s.fullLabel}</div>
+                    <div className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 mt-1">Pincode {s.pincode}</div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setShowManual(!showManual)}
+            className="text-sm font-medium text-yellow-700 dark:text-yellow-400 hover:underline"
+          >
+            {showManual ? 'Hide' : 'Or enter pincode only'}
           </button>
-        </form>
+
+          {showManual && (
+            <form onSubmit={handleManualSubmit} className="space-y-3 pt-1">
+              <p className="text-xs text-neutral-500">6-digit India pincode</p>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="e.g. 560001"
+                value={manualPincode}
+                onChange={(e) => {
+                  setManualPincode(e.target.value.replace(/\D/g, ''));
+                  setError('');
+                }}
+                className="w-full px-4 py-3 text-center text-lg font-medium tracking-widest rounded-xl border border-neutral-200 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-800 outline-none focus:border-yellow-500"
+              />
+              {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+              <button
+                type="submit"
+                disabled={manualLoading}
+                className="w-full py-3 bg-yellow-400 hover:bg-yellow-500 text-neutral-900 font-semibold rounded-xl disabled:opacity-60"
+              >
+                {manualLoading ? 'Locating…' : 'Continue with pincode'}
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );

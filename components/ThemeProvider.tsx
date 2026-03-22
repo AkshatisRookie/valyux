@@ -21,7 +21,7 @@ const STORAGE_KEY = 'valyux-theme';
 /* ------------------------------------------------------------------ */
 
 const ThemeContext = createContext<ThemeContextType>({
-  mode: 'system',
+  mode: 'light',
   resolved: 'light',
   setMode: () => {},
   toggle: () => {},
@@ -39,8 +39,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved === 'light' || saved === 'dark' || saved === 'system') return saved;
     } catch { /* ignore */ }
-    // Default to dark mode when nothing is stored
-    return 'dark';
+    // Default to light (white) background when nothing is stored
+    return 'light';
   });
 
   const [systemDark, setSystemDark] = useState(() =>
