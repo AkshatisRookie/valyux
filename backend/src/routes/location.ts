@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from 'express';
+import NodeCache from 'node-cache';
 
 const router = Router();
 
@@ -6,6 +7,11 @@ const router = Router();
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
 
 const USER_AGENT = process.env.NOMINATIM_USER_AGENT || 'Valyux/1.0 (contact:support@valyux.local)';
+
+// Nominatim enforces strict rate limits. Cache to avoid repeated calls
+// when users refresh or trigger "use current location" multiple times.
+const autocompleteCache = new NodeCache({ stdTTL: 3600, checkperiod: 600 }); // 1h
+const reverseCache = new NodeCache({ stdTTL: 3600, checkperiod: 600 }); // 1h
 
 interface NominatimItem {
   place_id: number;
@@ -54,6 +60,13 @@ router.get('/location/autocomplete', async (req: Request, res: Response): Promis
     return;
   }
 
+  const cacheKey = `ac:${q.toLowerCase()}`;
+  const cached = autocompleteCache.get<{ results: unknown[] }>(cacheKey);
+  if (cached) {
+    res.json(cached);
+    return;
+  }
+
   const url = new URL(NOMINATIM);
   url.searchParams.set('q', q);
   url.searchParams.set('format', 'json');
@@ -71,8 +84,13 @@ router.get('/location/autocomplete', async (req: Request, res: Response): Promis
     });
 
     if (!upstream.ok) {
-      console.error('[Nominatim]', upstream.status, await upstream.text().then((t) => t.slice(0, 200)));
-      res.status(502).json({ error: 'Address lookup failed' });
+      const bodyText = await upstream.text().catch(() => '');
+      console.error('[location/autocomplete] Upstream failed', upstream.status, bodyText.slice(0, 300));
+      res.status(502).json({
+        error: 'Address lookup failed',
+        status: upstream.status,
+        message: bodyText.slice(0, 300) || 'Upstream returned an error',
+      });
       return;
     }
 
@@ -93,7 +111,9 @@ router.get('/location/autocomplete', async (req: Request, res: Response): Promis
       })
       .filter((x): x is NonNullable<typeof x> => x !== null);
 
-    res.json({ results });
+    const payload = { results };
+    autocompleteCache.set(cacheKey, payload);
+    res.json(payload);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Search failed';
     console.error('[location/autocomplete]', msg);
@@ -160,6 +180,13 @@ router.get('/location/reverse', async (req: Request, res: Response): Promise<voi
     return;
   }
 
+  const key = `rev:${lat.toFixed(3)}:${lon.toFixed(3)}`;
+  const cached = reverseCache.get<{ pincode: string; addressLabel: string; lat: string; lon: string }>(key);
+  if (cached) {
+    res.json(cached);
+    return;
+  }
+
   const url = new URL('https://nominatim.openstreetmap.org/reverse');
   url.searchParams.set('lat', String(lat));
   url.searchParams.set('lon', String(lon));
@@ -219,12 +246,14 @@ router.get('/location/reverse', async (req: Request, res: Response): Promise<voi
       return;
     }
 
-    res.json({
+    const payload = {
       pincode,
       addressLabel: shortLabel(item),
       lat: String(item.lat),
       lon: String(item.lon),
-    });
+    };
+    reverseCache.set(key, payload);
+    res.json(payload);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Reverse geocode failed';
     res.status(500).json({ error: msg });
