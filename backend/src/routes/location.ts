@@ -178,7 +178,14 @@ router.get('/location/reverse', async (req: Request, res: Response): Promise<voi
     });
 
     if (!upstream.ok) {
-      res.status(502).json({ error: 'Reverse geocoding failed' });
+      const bodyText = await upstream.text().catch(() => '');
+      // Helps quickly diagnose issues like 403 (bad User-Agent) / 429 (rate limits).
+      console.error('[location/reverse] Upstream failed', upstream.status, bodyText.slice(0, 300));
+      res.status(502).json({
+        error: 'Reverse geocoding failed',
+        status: upstream.status,
+        message: bodyText.slice(0, 300) || 'Upstream returned an error',
+      });
       return;
     }
 
