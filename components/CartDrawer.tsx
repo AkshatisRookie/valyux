@@ -125,7 +125,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
 
   const currentTotal = activeSection === 'grocery' ? groceryTotal : electronicsTotal;
   const FREE_DELIVERY_THRESHOLD = 200;
-  const DELIVERY_FEE = 39;
+  const DELIVERY_FEE = 30;
   const deliveryFee = activeSection === 'grocery'
     ? groceryTotal >= FREE_DELIVERY_THRESHOLD
       ? 0
