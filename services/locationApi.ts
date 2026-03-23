@@ -9,6 +9,13 @@ export interface AddressSuggestion {
   lon: string;
 }
 
+export interface ReverseGeocodeResult {
+  pincode: string;
+  addressLabel: string;
+  lat: string;
+  lon: string;
+}
+
 /**
  * Address autocomplete (India) via backend → OpenStreetMap Nominatim.
  */
@@ -28,4 +35,25 @@ export async function fetchAddressSuggestions(query: string): Promise<AddressSug
 
   const data = await res.json();
   return Array.isArray(data.results) ? data.results : [];
+}
+
+/**
+ * Reverse geocode lat/lon to {pincode, addressLabel} via backend → Nominatim.
+ */
+export async function reverseGeocodeLatLon(lat: number, lon: number): Promise<ReverseGeocodeResult> {
+  const params = new URLSearchParams({
+    lat: String(lat),
+    lon: String(lon),
+  });
+
+  const res = await fetch(`${API_BASE}/api/location/reverse?${params}`, {
+    signal: AbortSignal.timeout(20000),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string })?.message || (err as { error?: string })?.error || `Reverse geocode failed (${res.status})`);
+  }
+
+  return res.json();
 }

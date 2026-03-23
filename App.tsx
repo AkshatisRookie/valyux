@@ -11,6 +11,7 @@ import { PincodeProvider, usePincode } from './context/PincodeContext';
 import { PincodeModal } from './components/PincodeModal';
 import { Product, Platform, CartItem, AppSection, ElectronicsCartItem } from './types';
 import { searchGroupQuickCommerce } from './services/quickCommerceApi';
+import { reverseGeocodeLatLon } from './services/locationApi';
 import { useDebounce } from './utils/useDebounce';
 import GroceryPlatformLogos from './components/GroceryPlatformLogos';
 
@@ -25,21 +26,47 @@ const AppContent: React.FC = () => {
 
   const [liveProducts, setLiveProducts] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchProgress, setSearchProgress] = useState(0);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const [showGeoPermissionModal, setShowGeoPermissionModal] = useState(false);
 
   const debouncedQuery = useDebounce(searchQuery, 600);
   const abortRef = useRef<AbortController | null>(null);
+  const progressTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!hasPincode) return; // when no pincode yet, PincodeModal handles it
+    if (!('geolocation' in navigator)) return;
+
+    // Show only once per browser session.
+    const key = 'valyux-geo-permission-modal';
+    if (sessionStorage.getItem(key) === '1') return;
+
+    setShowGeoPermissionModal(true);
+  }, [hasPincode]);
 
   useEffect(() => {
     if (!hasPincode || !hasCoords || !debouncedQuery || debouncedQuery.length < 2) {
       setLiveProducts([]);
       setSearchError(null);
+      setSearchProgress(0);
       return;
     }
     if (abortRef.current) abortRef.current.abort();
     abortRef.current = new AbortController();
     const fetchLive = async () => {
       setIsSearching(true);
+      setSearchProgress(10);
+      if (progressTimerRef.current) {
+        window.clearInterval(progressTimerRef.current);
+        progressTimerRef.current = null;
+      }
+      progressTimerRef.current = window.setInterval(() => {
+        setSearchProgress((p) => Math.min(90, p + 6 + Math.random() * 10));
+      }, 350);
       setSearchError(null);
       try {
         const result = await searchGroupQuickCommerce(debouncedQuery, lat, lon, pincode);
@@ -65,11 +92,24 @@ const AppContent: React.FC = () => {
         setSearchError(err instanceof Error ? err.message : 'Search failed');
         setLiveProducts([]);
       } finally {
+        if (progressTimerRef.current) {
+          window.clearInterval(progressTimerRef.current);
+          progressTimerRef.current = null;
+        }
+        setSearchProgress(100);
         setIsSearching(false);
+        window.setTimeout(() => setSearchProgress(0), 350);
       }
     };
     fetchLive();
-    return () => { abortRef.current?.abort(); };
+    return () => {
+      abortRef.current?.abort();
+      if (progressTimerRef.current) {
+        window.clearInterval(progressTimerRef.current);
+        progressTimerRef.current = null;
+      }
+      setSearchProgress(0);
+    };
   }, [debouncedQuery, pincode, hasPincode, hasCoords, lat, lon]);
 
   const displayProducts = useMemo(() => {
@@ -82,18 +122,103 @@ const AppContent: React.FC = () => {
       .filter((p): p is Product => p !== null);
   }, [liveProducts, debouncedQuery.length, openByPlatform]);
 
+  const handleUseCurrentLocation = () => {
+    setGeoError(null);
+
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setGeoError('Geolocation is not supported in this browser');
+      return;
+    }
+
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const latNum = pos.coords.latitude;
+          const lonNum = pos.coords.longitude;
+          const geo = await reverseGeocodeLatLon(latNum, lonNum);
+          setDeliveryLocation({
+            pincode: geo.pincode,
+            addressLabel: geo.addressLabel || `Pincode ${geo.pincode}`,
+            lat: geo.lat,
+            lon: geo.lon,
+          });
+        } catch (err) {
+          setGeoError(err instanceof Error ? err.message : 'Could not fetch your current location');
+        } finally {
+          setGeoLoading(false);
+        }
+      },
+      (e) => {
+        setGeoLoading(false);
+        const msg =
+          e.code === e.PERMISSION_DENIED ? 'Location permission denied' : 'Could not access your location';
+        setGeoError(msg);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  };
+
+  const normalizeNameForCompare = (s: string) =>
+    (s || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9 ]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const normalizeQtyForCompare = (q: string) =>
+    (q || '')
+      .toLowerCase()
+      .replace(/\s+/g, '')
+      .replace(/\.0+(?=\D|$)/g, '')
+      .trim();
+
+  const tokenSimilarity = (a: string, b: string) => {
+    const ta = a.split(' ').filter(Boolean);
+    const tb = b.split(' ').filter(Boolean);
+    if (ta.length === 0 || tb.length === 0) return 0;
+    if (a === b) return 1;
+    if (a.includes(b) || b.includes(a)) return 1;
+    const setA = new Set(ta);
+    const setB = new Set(tb);
+    let inter = 0;
+    for (const t of setA) if (setB.has(t)) inter += 1;
+    return inter / Math.max(setA.size, setB.size);
+  };
+
   const handleAddToCart = (product: Product, platform: Platform) => {
     setCart(prev => {
-      const existing = prev.find(item => item.product.id === product.id && item.selectedPlatform === platform);
+      const newName = normalizeNameForCompare(product.name);
+      const newBrand = normalizeNameForCompare(product.brand || '');
+      const newQty = normalizeQtyForCompare(product.quantity);
+
+      const existing = prev.find((item) => {
+        if (item.selectedPlatform !== platform) return false;
+        if (normalizeQtyForCompare(item.product.quantity) !== newQty) return false;
+
+        const itemName = normalizeNameForCompare(item.product.name);
+        const sim = tokenSimilarity(itemName, newName);
+        if (sim < 0.72) return false;
+
+        const itemBrand = normalizeNameForCompare(item.product.brand || '');
+        if (newBrand && itemBrand && itemBrand !== newBrand) return false;
+
+        return true;
+      });
+
       if (existing) {
-        return prev.map(item =>
-          item.product.id === product.id && item.selectedPlatform === platform
-            ? { ...item, quantity: item.quantity + 1 } : item
+        return prev.map((item) =>
+          item.product.id === existing.product.id && item.selectedPlatform === platform
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
         );
       }
-      return [...prev, { product, selectedPlatform: platform, quantity: 1, optimizedBuyUrl: undefined, optimizedPlatform: undefined }];
+
+      return [
+        ...prev,
+        { product, selectedPlatform: platform, quantity: 1, optimizedBuyUrl: undefined, optimizedPlatform: undefined },
+      ];
     });
-    setIsCartOpen(true);
   };
 
   const handleApplyGroceryOptimization = (items: CartItem[]) => {
@@ -127,7 +252,6 @@ const AppContent: React.FC = () => {
       }
       return [...prev, { ...item, quantity: 1 }];
     });
-    setIsCartOpen(true);
   };
 
   const handleUpdateElectronicsQuantity = (
@@ -187,13 +311,28 @@ const AppContent: React.FC = () => {
                   ) : null}
                   <span className="text-neutral-500 dark:text-neutral-400">Pincode {pincode}</span>
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setDeliveryLocation({ pincode: '', addressLabel: '' })}
-                  className="mt-1.5 text-xs font-medium text-yellow-700 hover:text-yellow-600 dark:text-yellow-400 dark:hover:text-yellow-300 underline underline-offset-2"
-                >
-                  Change location
-                </button>
+                <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setDeliveryLocation({ pincode: '', addressLabel: '' })}
+                    className="text-xs font-medium text-yellow-700 hover:text-yellow-600 dark:text-yellow-400 dark:hover:text-yellow-300 underline underline-offset-2"
+                  >
+                    Change location
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleUseCurrentLocation}
+                    disabled={geoLoading}
+                    className="text-xs font-medium text-neutral-700 hover:text-neutral-900 dark:text-neutral-200 dark:hover:text-white underline underline-offset-2 disabled:opacity-60"
+                  >
+                    {geoLoading ? 'Getting location…' : 'Use current location'}
+                  </button>
+                </div>
+                {geoError && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                    {geoError}
+                  </p>
+                )}
                 {etaLoading && <p className="text-xs text-neutral-500 mt-2">Loading delivery times…</p>}
                 {etaError && <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">{etaError}</p>}
                 {!hasCoords && hasPincode && (
@@ -207,10 +346,20 @@ const AppContent: React.FC = () => {
             <GroceryPlatformLogos />
 
             {searchQuery.length >= 2 && (
-              <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-neutral-500">
-                {isSearching && <span>Searching...</span>}
-                {!isSearching && liveProducts.length > 0 && <span>{displayProducts.length} results</span>}
-                {searchError && <span className="text-red-600 dark:text-red-400">{searchError}</span>}
+              <div className="mb-4">
+                <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-500">
+                  {isSearching && <span>Searching...</span>}
+                  {!isSearching && liveProducts.length > 0 && <span>{displayProducts.length} results</span>}
+                  {searchError && <span className="text-red-600 dark:text-red-400">{searchError}</span>}
+                </div>
+                {isSearching && (
+                  <div className="mt-2 h-2 w-full rounded-full bg-neutral-100 overflow-hidden dark:bg-neutral-800">
+                    <div
+                      className="h-full bg-yellow-400 transition-[width] duration-200"
+                      style={{ width: `${searchProgress}%` }}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
@@ -273,6 +422,48 @@ const AppContent: React.FC = () => {
           />
         )}
       </main>
+
+      {showGeoPermissionModal && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-950 p-4 shadow-2xl">
+            <h3 className="text-base font-bold text-neutral-900 dark:text-white">
+              Allow current location?
+            </h3>
+            <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
+              This helps Valyux show the best live grocery prices near you.
+            </p>
+            {geoError && (
+              <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+                {geoError}
+              </p>
+            )}
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  try { sessionStorage.setItem('valyux-geo-permission-modal', '1'); } catch {}
+                  setShowGeoPermissionModal(false);
+                  handleUseCurrentLocation();
+                }}
+                disabled={geoLoading}
+                className="flex-1 py-3 rounded-xl font-semibold bg-yellow-400 hover:bg-yellow-500 text-neutral-900 disabled:opacity-60"
+              >
+                {geoLoading ? 'Getting location…' : 'Allow'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  try { sessionStorage.setItem('valyux-geo-permission-modal', '1'); } catch {}
+                  setShowGeoPermissionModal(false);
+                }}
+                className="flex-1 py-3 rounded-xl font-semibold bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100"
+              >
+                Not now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isCartOpen && (
         <CartDrawer

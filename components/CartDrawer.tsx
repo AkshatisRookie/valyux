@@ -42,6 +42,34 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
   const [showCheckoutMessage, setShowCheckoutMessage] = useState(false);
 
+  // Used to group "same-ish" product names in the cart UI (quantity variants stay separate).
+  const normalizeNameForCompare = (s: string) =>
+    (s || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9 ]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const normalizeQtyForCompare = (q: string) =>
+    (q || '')
+      .toLowerCase()
+      .replace(/\s+/g, '')
+      .replace(/\.0+(?=\D|$)/g, '')
+      .trim();
+
+  const tokenSimilarity = (a: string, b: string) => {
+    const ta = a.split(' ').filter(Boolean);
+    const tb = b.split(' ').filter(Boolean);
+    if (ta.length === 0 || tb.length === 0) return 0;
+    if (a === b) return 1;
+    if (a.includes(b) || b.includes(a)) return 1;
+    const setA = new Set(ta);
+    const setB = new Set(tb);
+    let inter = 0;
+    for (const t of setA) if (setB.has(t)) inter += 1;
+    return inter / Math.max(setA.size, setB.size);
+  };
+
   const items = activeSection === 'grocery' ? groceryItems : electronicsItems;
   const itemCount = activeSection === 'grocery'
     ? groceryItems.reduce((acc, i) => acc + i.quantity, 0)
@@ -96,6 +124,22 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
   const electronicsTotal = electronicsItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
   const currentTotal = activeSection === 'grocery' ? groceryTotal : electronicsTotal;
+  const FREE_DELIVERY_THRESHOLD = 200;
+  const DELIVERY_FEE = 39;
+  const deliveryFee = activeSection === 'grocery'
+    ? groceryTotal >= FREE_DELIVERY_THRESHOLD
+      ? 0
+      : DELIVERY_FEE
+    : 0;
+  const totalWithDelivery = currentTotal + deliveryFee;
+  const cheapestPlatformDeliveryFee = cheapestPlatform
+    ? cheapestPlatform.total >= FREE_DELIVERY_THRESHOLD
+      ? 0
+      : DELIVERY_FEE
+    : 0;
+  const cheapestPlatformTotalWithDelivery = cheapestPlatform
+    ? cheapestPlatform.total + cheapestPlatformDeliveryFee
+    : 0;
 
   const handleAIAnalysis = async () => {
     if (groceryItems.length === 0) return;
@@ -111,6 +155,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
         const url = best.productUrl || getPlatformSearchUrl(best.platform, item.product.name);
         return {
           ...item,
+          selectedPlatform: best.platform,
           optimizedBuyUrl: url,
           optimizedPlatform: best.platform,
         };
@@ -166,67 +211,124 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                   <p>Your basket is empty</p>
                 </div>
               ) : (
-                groceryItems.map(item => (
-                  <div
-                    key={`${item.product.id}-${item.selectedPlatform}`}
-                    className="flex gap-4 rounded-lg border border-neutral-200 bg-neutral-50 p-3 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
-                  >
-                    <img
-                      src={item.product.imageUrl}
-                      alt={item.product.name}
-                      className="h-20 w-20 rounded object-contain bg-white dark:bg-neutral-950"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <h4 className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                        {item.product.name}
-                      </h4>
-                      <p className="mb-1 text-xs text-neutral-500 dark:text-neutral-400">
-                        {item.product.quantity} · Cart: {item.selectedPlatform}
-                        {item.optimizedPlatform && (
-                          <span className="block text-indigo-600 dark:text-indigo-400 font-medium">
-                            Smart link → {item.optimizedPlatform}
-                          </span>
-                        )}
-                      </p>
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-sm font-bold text-neutral-900 dark:text-white">
-                          ₹
-                          {item.optimizedPlatform
-                            ? item.product.platformPrices.find((p) => p.platform === item.optimizedPlatform)?.price ??
-                              item.product.platformPrices.find((p) => p.platform === item.selectedPlatform)?.price
-                            : item.product.platformPrices.find((p) => p.platform === item.selectedPlatform)?.price}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => openLink(item)}
-                            className="flex items-center gap-0.5 text-[10px] font-bold text-indigo-600 hover:underline dark:text-indigo-400"
-                          >
-                            Open {item.optimizedPlatform || item.selectedPlatform}
-                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
-                          </button>
-                          <div className="flex items-center gap-0 rounded-lg border border-neutral-200 bg-white px-2 py-1 dark:border-neutral-700 dark:bg-neutral-800">
-                            <button
-                              onClick={() => onUpdateGroceryQuantity(item.product.id, item.selectedPlatform, -1)}
-                              className="flex h-6 w-6 items-center justify-center text-xl font-bold text-neutral-600 dark:text-neutral-300"
-                            >
-                              -
-                            </button>
-                            <span className="w-4 text-center text-sm font-bold text-neutral-900 dark:text-white">{item.quantity}</span>
-                            <button
-                              onClick={() => onUpdateGroceryQuantity(item.product.id, item.selectedPlatform, 1)}
-                              className="flex h-6 w-6 items-center justify-center text-xl font-bold text-neutral-600 dark:text-neutral-300"
-                            >
-                              +
-                            </button>
-                          </div>
+                (() => {
+                  const groups: Array<{
+                    canonicalName: string;
+                    canonicalBrand: string;
+                    items: CartItem[];
+                  }> = [];
+                  for (const item of groceryItems) {
+                    const itemName = normalizeNameForCompare(item.product.name);
+                    const itemBrand = normalizeNameForCompare(item.product.brand || '');
+
+                    const target = groups.find((g) => {
+                      const gName = normalizeNameForCompare(g.canonicalName);
+                      const sim = tokenSimilarity(itemName, gName);
+                      if (sim < 0.72) return false;
+                      const gBrand = normalizeNameForCompare(g.canonicalBrand || '');
+                      if (itemBrand && gBrand && itemBrand !== gBrand) return false;
+                      return true; // quantity variants allowed inside the group
+                    });
+
+                    if (!target) {
+                      groups.push({
+                        canonicalName: item.product.name,
+                        canonicalBrand: item.product.brand || '',
+                        items: [item],
+                      });
+                    } else {
+                      target.items.push(item);
+                    }
+                  }
+
+                  return groups.map((group) => {
+                    const brandPrefix = group.canonicalBrand ? `${group.canonicalBrand} · ` : '';
+                    const variantQtys = Array.from(
+                      new Set(group.items.map((it) => normalizeQtyForCompare(it.product.quantity)))
+                    ).filter(Boolean);
+
+                    return (
+                      <div key={`group-${group.canonicalName}`} className="space-y-2">
+                        <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-800 dark:bg-neutral-900">
+                          <h4 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                            {brandPrefix}
+                            {group.canonicalName}
+                          </h4>
+                          {variantQtys.length > 0 && (
+                            <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                              Variants:{' '}
+                              {variantQtys
+                                .map((q) => group.items.find((it) => normalizeQtyForCompare(it.product.quantity) === q)?.product.quantity || q)
+                                .join(' · ')}
+                            </p>
+                          )}
                         </div>
+
+                        {group.items.map((item) => (
+                          <div
+                            key={`${item.product.id}-${item.selectedPlatform}`}
+                            className="flex gap-4 rounded-lg border border-neutral-200 bg-neutral-50 p-3 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+                          >
+                            <img
+                              src={item.product.imageUrl}
+                              alt={item.product.name}
+                              className="h-20 w-20 rounded object-contain bg-white dark:bg-neutral-950"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <h4 className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                                {group.canonicalName}
+                              </h4>
+                              <p className="mb-1 text-xs text-neutral-500 dark:text-neutral-400">
+                                {item.product.quantity} · Cart: {item.selectedPlatform}
+                                {item.optimizedPlatform && (
+                                  <span className="block text-indigo-600 dark:text-indigo-400 font-medium">
+                                    Smart link → {item.optimizedPlatform}
+                                  </span>
+                                )}
+                              </p>
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="text-sm font-bold text-neutral-900 dark:text-white">
+                                  ₹
+                                  {item.optimizedPlatform
+                                    ? item.product.platformPrices.find((p) => p.platform === item.optimizedPlatform)?.price ??
+                                      item.product.platformPrices.find((p) => p.platform === item.selectedPlatform)?.price
+                                    : item.product.platformPrices.find((p) => p.platform === item.selectedPlatform)?.price}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => openLink(item)}
+                                    className="flex items-center gap-0.5 text-[10px] font-bold text-indigo-600 hover:underline dark:text-indigo-400"
+                                  >
+                                    Open {item.optimizedPlatform || item.selectedPlatform}
+                                    <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                  </button>
+                                  <div className="flex items-center gap-0 rounded-lg border border-neutral-200 bg-white px-2 py-1 dark:border-neutral-700 dark:bg-neutral-800">
+                                    <button
+                                      onClick={() => onUpdateGroceryQuantity(item.product.id, item.selectedPlatform, -1)}
+                                      className="flex h-6 w-6 items-center justify-center text-xl font-bold text-neutral-600 dark:text-neutral-300"
+                                    >
+                                      -
+                                    </button>
+                                    <span className="w-4 text-center text-sm font-bold text-neutral-900 dark:text-white">{item.quantity}</span>
+                                    <button
+                                      onClick={() => onUpdateGroceryQuantity(item.product.id, item.selectedPlatform, 1)}
+                                      className="flex h-6 w-6 items-center justify-center text-xl font-bold text-neutral-600 dark:text-neutral-300"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                  </div>
-                ))
+                    );
+                  });
+                })()
               )}
 
               {groceryItems.length > 0 && !analysis && (
@@ -380,12 +482,12 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
           <div className="mb-4 flex items-center justify-between">
             <div>
               <span className="block text-xs font-medium text-neutral-500 dark:text-neutral-400">Total</span>
-              <span className="text-xl font-black text-neutral-900 dark:text-white">₹{currentTotal.toFixed(2)}</span>
+              <span className="text-xl font-black text-neutral-900 dark:text-white">₹{totalWithDelivery.toFixed(2)}</span>
             </div>
             {activeSection === 'grocery' && cheapestPlatform && (
               <div className="text-right">
                 <span className="block text-[10px] font-bold uppercase text-green-600 dark:text-green-400">Best Single Price</span>
-                <span className="text-sm font-bold text-neutral-800 dark:text-neutral-200">₹{cheapestPlatform.total.toFixed(2)}</span>
+                <span className="text-sm font-bold text-neutral-800 dark:text-neutral-200">₹{cheapestPlatformTotalWithDelivery.toFixed(2)}</span>
               </div>
             )}
           </div>
@@ -406,6 +508,19 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                   >
                     Dismiss
                   </button>
+                </div>
+              )}
+              {activeSection === 'grocery' && (
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900/30 p-2">
+                  {deliveryFee === 0 ? (
+                    <p className="text-center text-[10px] font-medium text-neutral-800 dark:text-neutral-200">
+                      Delivery charge removed (free over ₹{FREE_DELIVERY_THRESHOLD})
+                    </p>
+                  ) : (
+                    <p className="text-center text-[10px] font-medium text-neutral-800 dark:text-neutral-200">
+                      Delivery: ₹{DELIVERY_FEE} · Add ₹{Math.max(0, Math.ceil(FREE_DELIVERY_THRESHOLD - groceryTotal))} more to remove delivery charge
+                    </p>
+                  )}
                 </div>
               )}
               <button

@@ -2,7 +2,7 @@ import React from 'react';
 import { AppSection } from '../types';
 import { FEATURE_ELECTRONICS_PAGE, FEATURE_FLIGHTS_PAGE } from '../config/features';
 import { useTheme } from './ThemeProvider';
-const valyuxLogo = new URL('../assets/valyux-logo.png', import.meta.url).href;
+const valyuxLogo = new URL('../assets/valyux-icon.svg', import.meta.url).href;
 
 interface NavbarProps {
   cartCount: number;

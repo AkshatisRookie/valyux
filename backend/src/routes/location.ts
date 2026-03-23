@@ -146,4 +146,82 @@ router.get('/location/pincode-geocode', async (req: Request, res: Response): Pro
   }
 });
 
+/** GET /api/location/reverse?lat=..&lon=..
+ * Uses Nominatim reverse geocoding to extract the nearest pincode + address label.
+ */
+router.get('/location/reverse', async (req: Request, res: Response): Promise<void> => {
+  const latRaw = String(req.query.lat ?? '').trim();
+  const lonRaw = String(req.query.lon ?? '').trim();
+  const lat = Number(latRaw);
+  const lon = Number(lonRaw);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    res.status(400).json({ error: 'Valid lat and lon required' });
+    return;
+  }
+
+  const url = new URL('https://nominatim.openstreetmap.org/reverse');
+  url.searchParams.set('lat', String(lat));
+  url.searchParams.set('lon', String(lon));
+  url.searchParams.set('format', 'jsonv2');
+  url.searchParams.set('addressdetails', '1');
+  url.searchParams.set('zoom', '18');
+  url.searchParams.set('limit', '1');
+
+  try {
+    const upstream = await fetch(url.toString(), {
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': USER_AGENT,
+      },
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!upstream.ok) {
+      res.status(502).json({ error: 'Reverse geocoding failed' });
+      return;
+    }
+
+    const data = (await upstream.json()) as {
+      lat?: string;
+      lon?: string;
+      display_name?: string;
+      address?: {
+        postcode?: string;
+        city?: string;
+        town?: string;
+        village?: string;
+        state?: string;
+        suburb?: string;
+        neighbourhood?: string;
+        road?: string;
+      };
+    };
+
+    const item: NominatimItem = {
+      place_id: 0,
+      lat: String(data.lat ?? lat),
+      lon: String(data.lon ?? lon),
+      display_name: String(data.display_name ?? `${lat},${lon}`),
+      address: data.address,
+    };
+
+    const pincode = extractPincode(item);
+    if (!pincode) {
+      res.status(404).json({ error: 'Could not extract pincode from your location' });
+      return;
+    }
+
+    res.json({
+      pincode,
+      addressLabel: shortLabel(item),
+      lat: String(item.lat),
+      lon: String(item.lon),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Reverse geocode failed';
+    res.status(500).json({ error: msg });
+  }
+});
+
 export default router;
