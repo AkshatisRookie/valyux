@@ -12,7 +12,12 @@ const USER_AGENT = process.env.NOMINATIM_USER_AGENT || 'Valyux/1.0 (contact:supp
 // when users refresh or trigger "use current location" multiple times.
 const autocompleteCache = new NodeCache({ stdTTL: 3600, checkperiod: 600 }); // 1h
 const reverseCache = new NodeCache({ stdTTL: 3600, checkperiod: 600 }); // 1h
-const reverseCooldownCache = new NodeCache({ stdTTL: 60, checkperiod: 30 }); // 1m
+// When Nominatim returns 429, the rate-limit often persists for a few minutes.
+// Use a longer cooldown to prevent repeated calls from keeping you in 429 mode.
+const reverseCooldownCache = new NodeCache({ stdTTL: 600, checkperiod: 60 }); // 10m
+
+// Also protect autocomplete endpoint from hammering Nominatim.
+const autocompleteCooldownCache = new NodeCache({ stdTTL: 120, checkperiod: 60 }); // 2m
 
 interface NominatimItem {
   place_id: number;
@@ -61,6 +66,14 @@ router.get('/location/autocomplete', async (req: Request, res: Response): Promis
     return;
   }
 
+  if (autocompleteCooldownCache.get<string>('global')) {
+    res.status(429).json({
+      error: 'Address lookup rate-limited',
+      message: 'Please try again in a few minutes.',
+    });
+    return;
+  }
+
   const cacheKey = `ac:${q.toLowerCase()}`;
   const cached = autocompleteCache.get<{ results: unknown[] }>(cacheKey);
   if (cached) {
@@ -87,6 +100,9 @@ router.get('/location/autocomplete', async (req: Request, res: Response): Promis
     if (!upstream.ok) {
       const bodyText = await upstream.text().catch(() => '');
       console.error('[location/autocomplete] Upstream failed', upstream.status, bodyText.slice(0, 300));
+      if (upstream.status === 429) {
+        autocompleteCooldownCache.set('global', '1');
+      }
       res.status(502).json({
         error: 'Address lookup failed',
         status: upstream.status,
