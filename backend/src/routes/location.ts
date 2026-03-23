@@ -12,6 +12,7 @@ const USER_AGENT = process.env.NOMINATIM_USER_AGENT || 'Valyux/1.0 (contact:supp
 // when users refresh or trigger "use current location" multiple times.
 const autocompleteCache = new NodeCache({ stdTTL: 3600, checkperiod: 600 }); // 1h
 const reverseCache = new NodeCache({ stdTTL: 3600, checkperiod: 600 }); // 1h
+const reverseCooldownCache = new NodeCache({ stdTTL: 60, checkperiod: 30 }); // 1m
 
 interface NominatimItem {
   place_id: number;
@@ -180,7 +181,17 @@ router.get('/location/reverse', async (req: Request, res: Response): Promise<voi
     return;
   }
 
-  const key = `rev:${lat.toFixed(3)}:${lon.toFixed(3)}`;
+  // Round coordinates to increase cache hits.
+  // 2 decimals ~ 1km, enough for stable pincode extraction.
+  const key = `rev:${lat.toFixed(2)}:${lon.toFixed(2)}`;
+
+  // If Nominatim rate-limited recently, avoid hammering it.
+  if (reverseCooldownCache.get<string>(key)) {
+    res.status(429).json({
+      error: 'Reverse geocoding rate-limited. Please try again in a moment.',
+    });
+    return;
+  }
   const cached = reverseCache.get<{ pincode: string; addressLabel: string; lat: string; lon: string }>(key);
   if (cached) {
     res.json(cached);
@@ -208,6 +219,9 @@ router.get('/location/reverse', async (req: Request, res: Response): Promise<voi
       const bodyText = await upstream.text().catch(() => '');
       // Helps quickly diagnose issues like 403 (bad User-Agent) / 429 (rate limits).
       console.error('[location/reverse] Upstream failed', upstream.status, bodyText.slice(0, 300));
+      if (upstream.status === 429) {
+        reverseCooldownCache.set(key, '1');
+      }
       res.status(502).json({
         error: 'Reverse geocoding failed',
         status: upstream.status,
