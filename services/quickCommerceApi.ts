@@ -54,6 +54,10 @@ export async function fetchGroupEta(
     signal: AbortSignal.timeout(30000),
   });
   if (!res.ok) {
+    // ETA is an enhancement for labels/filtering. Keep search usable on upstream hiccups.
+    if (res.status >= 500) {
+      return { etaByPlatform: {}, openByPlatform: {} };
+    }
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { message?: string })?.message || 'ETA failed');
   }

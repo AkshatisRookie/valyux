@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { Platform } from '../types';
 import { usePincode } from '../context/PincodeContext';
-import bigbasketLogo from '../assets/bigbasket-icon.svg';
+const bigbasketLogo = new URL('../assets/bigbasket-icon.svg', import.meta.url).href;
 
 const BIGBASKET_FALLBACK =
   'https://www.google.com/s2/favicons?domain=bigbasket.com&sz=128';
