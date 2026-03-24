@@ -96,7 +96,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
               </div>
             </div>
             <div className="flex items-center gap-1 shrink-0">
-              <span className="text-xs line-through text-neutral-500">₹{cheapestPrice.originalPrice}</span>
               <span className="text-base font-bold whitespace-nowrap">₹{cheapestPrice.price}</span>
               <a
                 href={getProductLink(cheapestPrice.platform, product.name, cheapestPrice.productUrl)}
