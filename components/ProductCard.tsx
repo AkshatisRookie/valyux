@@ -13,6 +13,23 @@ interface ProductCardProps {
 
 const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=400&q=80';
 
+/** Keeps digits and units (e.g. "7 mins") on one line and aligned on the same baseline (fixes mobile font-metrics quirks). */
+function DeliveryTimeLabel({ value, className }: { value: string; className?: string }) {
+  const cleaned = value.replace(/\s+/g, ' ').trim();
+  const match = cleaned.match(/^(\d+)\s*(.+)$/);
+  const base = className ?? 'text-[10px] text-neutral-500 dark:text-neutral-400';
+  if (match) {
+    const [, num, rest] = match;
+    return (
+      <span className={`inline-flex items-baseline gap-0.5 whitespace-nowrap ${base}`}>
+        <span className="tabular-nums font-semibold leading-none">{num}</span>
+        <span className="leading-none">{rest}</span>
+      </span>
+    );
+  }
+  return <span className={`whitespace-nowrap leading-none ${base}`}>{cleaned}</span>;
+}
+
 const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
   const sortedPrices = [...product.platformPrices].sort((a, b) => a.price - b.price);
   const cheapestPrice = sortedPrices[0];
@@ -85,9 +102,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
               <span className="w-3.5 h-3.5 rounded-full shrink-0 overflow-hidden inline-flex items-center justify-center bg-white/80 dark:bg-neutral-700/80 ring-1 ring-black/5 dark:ring-white/10">
                 <img src={getPlatformIcon(cheapestPrice.platform)} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               </span>
-              <div className="min-w-0">
+              <div className="min-w-0 self-center">
                 {cheapestPrice.deliveryTime && (
-                  <span className="text-[10px] text-neutral-500 dark:text-neutral-400">{cheapestPrice.deliveryTime}</span>
+                  <DeliveryTimeLabel value={cheapestPrice.deliveryTime} />
                 )}
               </div>
             </div>
@@ -138,7 +155,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
                       </span>
                       <div className="min-w-0 flex flex-col">
                         <span className="text-[11px] font-medium truncate">{pp.platform}</span>
-                        {pp.deliveryTime && <span className="text-[9px] text-neutral-500 truncate">{pp.deliveryTime}</span>}
+                        {pp.deliveryTime && (
+                          <DeliveryTimeLabel
+                            value={pp.deliveryTime}
+                            className="text-[9px] text-neutral-500 dark:text-neutral-400"
+                          />
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
