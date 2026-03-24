@@ -86,10 +86,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
                 <img src={getPlatformIcon(cheapestPrice.platform)} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               </span>
               <div className="min-w-0">
-                <div className="text-xs font-semibold truncate">
-                  {cheapestPrice.platform}
-                  <span className="ml-1 text-[10px] font-bold text-yellow-700 dark:text-yellow-400">Best price</span>
-                </div>
                 {cheapestPrice.deliveryTime && (
                   <span className="text-[10px] text-neutral-500 dark:text-neutral-400">{cheapestPrice.deliveryTime}</span>
                 )}
