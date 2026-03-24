@@ -35,6 +35,7 @@ const AppContent: React.FC = () => {
   const debouncedQuery = useDebounce(searchQuery, 600);
   const abortRef = useRef<AbortController | null>(null);
   const progressTimerRef = useRef<number | null>(null);
+  const SIMILAR_NAME_THRESHOLD = 0.72;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -111,16 +112,6 @@ const AppContent: React.FC = () => {
       setSearchProgress(0);
     };
   }, [debouncedQuery, pincode, hasPincode, hasCoords, lat, lon]);
-
-  const displayProducts = useMemo(() => {
-    if (debouncedQuery.length < 2) return [];
-    return liveProducts
-      .map((p) => {
-        const filtered = p.platformPrices.filter((pp) => openByPlatform[pp.platform] !== false);
-        return filtered.length > 0 ? { ...p, platformPrices: filtered } : null;
-      })
-      .filter((p): p is Product => p !== null);
-  }, [liveProducts, debouncedQuery.length, openByPlatform]);
 
   const handleUseCurrentLocation = () => {
     setGeoError(null);
@@ -199,6 +190,64 @@ const AppContent: React.FC = () => {
     for (const t of setA) if (setB.has(t)) inter += 1;
     return inter / Math.max(setA.size, setB.size);
   };
+
+  const isQuantityCompatible = (a: string, b: string) => {
+    const qa = normalizeQtyForCompare(a);
+    const qb = normalizeQtyForCompare(b);
+    if (!qa || !qb) return true;
+    return qa === qb;
+  };
+
+  const displayProducts = useMemo(() => {
+    if (debouncedQuery.length < 2) return [];
+
+    const filtered = liveProducts
+      .map((p) => {
+        const platformPrices = p.platformPrices.filter((pp) => openByPlatform[pp.platform] !== false);
+        return platformPrices.length > 0 ? { ...p, platformPrices } : null;
+      })
+      .filter((p): p is Product => p !== null);
+
+    const groups: Product[] = [];
+    for (const candidate of filtered) {
+      const candidateName = normalizeNameForCompare(candidate.name);
+      const candidateBrand = normalizeNameForCompare(candidate.brand || '');
+
+      const target = groups.find((existing) => {
+        const existingName = normalizeNameForCompare(existing.name);
+        const similar = tokenSimilarity(existingName, candidateName) >= SIMILAR_NAME_THRESHOLD;
+        if (!similar) return false;
+
+        const existingBrand = normalizeNameForCompare(existing.brand || '');
+        if (candidateBrand && existingBrand && candidateBrand !== existingBrand) return false;
+
+        return isQuantityCompatible(existing.quantity, candidate.quantity);
+      });
+
+      if (!target) {
+        groups.push({
+          ...candidate,
+          platformPrices: [...candidate.platformPrices],
+        });
+        continue;
+      }
+
+      const byPlatform = new Map<Platform, Product['platformPrices'][number]>();
+      for (const pp of target.platformPrices) byPlatform.set(pp.platform, pp);
+      for (const pp of candidate.platformPrices) {
+        const existing = byPlatform.get(pp.platform);
+        if (!existing || pp.price < existing.price) {
+          byPlatform.set(pp.platform, pp);
+        }
+      }
+      target.platformPrices = Array.from(byPlatform.values()).sort((a, b) => a.price - b.price);
+      if (!target.quantity && candidate.quantity) target.quantity = candidate.quantity;
+      if (!target.brand && candidate.brand) target.brand = candidate.brand;
+      if (!target.imageUrl && candidate.imageUrl) target.imageUrl = candidate.imageUrl;
+    }
+
+    return groups;
+  }, [liveProducts, debouncedQuery.length, openByPlatform]);
 
   const handleAddToCart = (product: Product, platform: Platform) => {
     setCart(prev => {
