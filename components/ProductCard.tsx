@@ -94,6 +94,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
         <p className="text-xs text-neutral-500 mb-0.5">{product.brand}</p>
         <h3 className="font-medium text-neutral-900 dark:text-white text-sm line-clamp-2 mb-1">{product.name}</h3>
         <p className="text-xs text-neutral-500 mb-3">{product.quantity}</p>
+        <div className="mb-3 flex flex-wrap items-center gap-1.5">
+          {product.platformPrices.length >= 2 ? (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800">
+              Compared ({product.platformPrices.length})
+            </span>
+          ) : (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-50 text-neutral-700 border border-neutral-200 dark:bg-neutral-900/40 dark:text-neutral-300 dark:border-neutral-700">
+              Not compared
+            </span>
+          )}
+        </div>
 
         {/* Best price — icon left; price + actions on top, delivery time on next line (avoids overlap on narrow screens) */}
         <div className={`mt-auto rounded-lg border px-2.5 py-2.5 ${getPlatformColor(cheapestPrice.platform)} ring-1 ring-yellow-400/80`}>

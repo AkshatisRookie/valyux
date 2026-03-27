@@ -232,7 +232,17 @@ const AppContent: React.FC = () => {
       if (!target.imageUrl && candidate.imageUrl) target.imageUrl = candidate.imageUrl;
     }
 
-    return groups;
+    const cheapest = (p: Product) => Math.min(...p.platformPrices.map((pp) => pp.price || Infinity));
+
+    const compared = groups
+      .filter((p) => p.platformPrices.length >= 2)
+      .sort((a, b) => cheapest(a) - cheapest(b));
+
+    const notCompared = groups
+      .filter((p) => p.platformPrices.length < 2)
+      .sort((a, b) => cheapest(a) - cheapest(b));
+
+    return [...compared, ...notCompared];
   }, [liveProducts, debouncedQuery.length, openByPlatform]);
 
   const handleAddToCart = (product: Product, platform: Platform) => {
