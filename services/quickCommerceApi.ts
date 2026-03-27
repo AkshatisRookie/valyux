@@ -1,4 +1,4 @@
-const API_BASE = process.env.VALYUX_API_URL || 'http://localhost:5000';
+import { fetchBackend } from './backendFetch';
 
 export interface GroupSearchResponse {
   results: unknown[];
@@ -17,9 +17,7 @@ export async function searchGroupQuickCommerce(
     lon: lon.trim(),
     pincode: pincode.trim(),
   });
-  const res = await fetch(`${API_BASE}/api/qc/groupsearch?${params}`, {
-    signal: AbortSignal.timeout(90000),
-  });
+  const res = await fetchBackend(`/api/qc/groupsearch?${params}`, { timeoutMs: 90000, retries: 2 });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(
@@ -50,9 +48,7 @@ export async function fetchGroupEta(
     lon: lon.trim(),
     pincode: pincode.trim(),
   });
-  const res = await fetch(`${API_BASE}/api/qc/groupeta?${params}`, {
-    signal: AbortSignal.timeout(30000),
-  });
+  const res = await fetchBackend(`/api/qc/groupeta?${params}`, { timeoutMs: 30000, retries: 2 });
   if (!res.ok) {
     // ETA is an enhancement for labels/filtering. Keep search usable on upstream hiccups.
     if (res.status >= 500) {

@@ -121,20 +121,6 @@ export const PincodeModal: React.FC<PincodeModalProps> = ({ onConfirm }) => {
       return;
     }
 
-    // Prevent repeated reverse-geocode calls from quick successive clicks.
-    try {
-      const key = 'valyux-reverse-geo-last';
-      const last = Number(sessionStorage.getItem(key) || '0');
-      const now = Date.now();
-      if (Number.isFinite(last) && last > 0 && now - last < 90000) {
-        setGeoError('Please wait a moment before trying again.');
-        return;
-      }
-      sessionStorage.setItem(key, String(now));
-    } catch {
-      // ignore if sessionStorage is blocked
-    }
-
     setGeoLoading(true);
 
     navigator.geolocation.getCurrentPosition(

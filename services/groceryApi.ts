@@ -1,6 +1,6 @@
 import type { Product, Platform } from '../types';
 
-const API_BASE = process.env.VALYUX_API_URL || 'http://localhost:5000';
+import { fetchBackend } from './backendFetch';
 
 /**
  * Response shape from the backend search endpoint.
@@ -44,12 +44,13 @@ export async function searchProducts(
   query: string,
   location: string = 'Delhi'
 ): Promise<SearchResult> {
-  const url = `${API_BASE}/api/search?q=${encodeURIComponent(query)}&location=${encodeURIComponent(location)}`;
+  const url = `/api/search?q=${encodeURIComponent(query)}&location=${encodeURIComponent(location)}`;
 
-  const response = await fetch(url, {
+  const response = await fetchBackend(url, {
     method: 'GET',
     headers: { 'Content-Type': 'application/json' },
-    signal: AbortSignal.timeout(90000), // 90 second timeout
+    timeoutMs: 90000,
+    retries: 2,
   });
 
   if (!response.ok) {
@@ -85,9 +86,7 @@ export async function searchProducts(
  */
 export async function checkHealth(): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE}/api/health`, {
-      signal: AbortSignal.timeout(5000),
-    });
+    const response = await fetchBackend('/api/health', { timeoutMs: 5000, retries: 0 });
     return response.ok;
   } catch {
     return false;

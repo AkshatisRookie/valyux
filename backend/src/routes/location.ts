@@ -7,6 +7,37 @@ const router = Router();
 const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
 
 const USER_AGENT = process.env.NOMINATIM_USER_AGENT || 'Valyux/1.0 (contact:support@valyux.local)';
+const LOCATIONIQ_KEY = (process.env.LOCATIONIQ_API_KEY || '').trim();
+
+/**
+ * Simple in-memory scheduler to keep upstream calls under a global RPS cap.
+ * This is per-backend-instance; if you scale horizontally, move this to a shared limiter/queue.
+ */
+function createGlobalRpsScheduler(rps: number, maxQueueMs: number) {
+  const intervalMs = Math.max(1, Math.floor(1000 / Math.max(1, rps)));
+  let nextAt = Date.now();
+
+  return async function schedule(): Promise<void> {
+    const now = Date.now();
+    const scheduled = Math.max(now, nextAt);
+    const waitMs = scheduled - now;
+
+    if (waitMs > maxQueueMs) {
+      throw new Error('UPSTREAM_QUEUE_FULL');
+    }
+
+    nextAt = scheduled + intervalMs;
+
+    if (waitMs <= 0) return;
+    await new Promise<void>((resolve) => setTimeout(resolve, waitMs));
+  };
+}
+
+const LOCATIONIQ_RPS = Number(process.env.LOCATIONIQ_RPS || '2') || 2;
+const LOCATIONIQ_MAX_QUEUE_MS = Number(process.env.LOCATIONIQ_MAX_QUEUE_MS || '12000') || 12000;
+const scheduleLocationIq = createGlobalRpsScheduler(LOCATIONIQ_RPS, LOCATIONIQ_MAX_QUEUE_MS);
+const LOCATIONIQ_COOLDOWN_SECONDS = Number(process.env.LOCATIONIQ_COOLDOWN_SECONDS || '60') || 60;
+const locationIqCooldownCache = new NodeCache({ stdTTL: LOCATIONIQ_COOLDOWN_SECONDS, checkperiod: 30 });
 
 // Nominatim enforces strict rate limits. Cache to avoid repeated calls
 // when users refresh or trigger "use current location" multiple times.
@@ -184,7 +215,7 @@ router.get('/location/pincode-geocode', async (req: Request, res: Response): Pro
 });
 
 /** GET /api/location/reverse?lat=..&lon=..
- * Uses Nominatim reverse geocoding to extract the nearest pincode + address label.
+ * Uses LocationIQ reverse geocoding to extract the nearest pincode + address label.
  */
 router.get('/location/reverse', async (req: Request, res: Response): Promise<void> => {
   const latRaw = String(req.query.lat ?? '').trim();
@@ -214,34 +245,67 @@ router.get('/location/reverse', async (req: Request, res: Response): Promise<voi
     return;
   }
 
-  const url = new URL('https://nominatim.openstreetmap.org/reverse');
+  if (!LOCATIONIQ_KEY) {
+    res.status(500).json({
+      error: 'LocationIQ API key missing',
+      message: 'Set LOCATIONIQ_API_KEY in backend/.env',
+    });
+    return;
+  }
+
+  // If LocationIQ rate-limited recently, fail fast so we don't keep hammering upstream.
+  if (locationIqCooldownCache.get<string>('global')) {
+    res.setHeader('Retry-After', String(LOCATIONIQ_COOLDOWN_SECONDS));
+    res.status(429).json({
+      error: 'Too many requests',
+      message: 'Geocoding provider rate-limited. Please use pincode search below and try again later.',
+      retryAfterSeconds: LOCATIONIQ_COOLDOWN_SECONDS,
+    });
+    return;
+  }
+
+  const url = new URL('https://us1.locationiq.com/v1/reverse');
+  url.searchParams.set('key', LOCATIONIQ_KEY);
   url.searchParams.set('lat', String(lat));
   url.searchParams.set('lon', String(lon));
-  url.searchParams.set('format', 'jsonv2');
-  url.searchParams.set('addressdetails', '1');
-  url.searchParams.set('zoom', '18');
-  url.searchParams.set('limit', '1');
+  url.searchParams.set('format', 'json');
 
   try {
+    // Global upstream throttle: keeps bursts (e.g. many users clicking at once) under LocationIQ limits.
+    await scheduleLocationIq();
+
     const upstream = await fetch(url.toString(), {
       headers: {
         Accept: 'application/json',
-        'User-Agent': USER_AGENT,
       },
       signal: AbortSignal.timeout(15000),
     });
 
     if (!upstream.ok) {
       const bodyText = await upstream.text().catch(() => '');
-      // Helps quickly diagnose issues like 403 (bad User-Agent) / 429 (rate limits).
-      console.error('[location/reverse] Upstream failed', upstream.status, bodyText.slice(0, 300));
+      const snippet = bodyText.slice(0, 300);
+      const looksLikeHtml = /^\s*</.test(bodyText) && /<html|<!doctype/i.test(bodyText);
+
+      // Helps quickly diagnose issues like 401/403 (bad key) / 429 (rate limits).
+      console.error('[location/reverse] Upstream failed', upstream.status, snippet);
+
       if (upstream.status === 429) {
         reverseCooldownCache.set(key, '1');
+        locationIqCooldownCache.set('global', '1');
+        res.setHeader('Retry-After', '120');
+        res.status(429).json({
+          error: 'Too many requests',
+          message:
+            'Geocoding provider rate-limited (429). Please use pincode search below or wait a few minutes and try again.',
+          retryAfterSeconds: 120,
+        });
+        return;
       }
+
       res.status(502).json({
         error: 'Reverse geocoding failed',
         status: upstream.status,
-        message: bodyText.slice(0, 300) || 'Upstream returned an error',
+        message: looksLikeHtml ? 'Upstream returned an HTML error page' : (snippet || 'Upstream returned an error'),
       });
       return;
     }
@@ -285,6 +349,15 @@ router.get('/location/reverse', async (req: Request, res: Response): Promise<voi
     reverseCache.set(key, payload);
     res.json(payload);
   } catch (err) {
+    if (err instanceof Error && err.message === 'UPSTREAM_QUEUE_FULL') {
+      res.setHeader('Retry-After', '15');
+      res.status(429).json({
+        error: 'Server busy',
+        message: 'High traffic. Please enter your pincode below or try again in a few seconds.',
+        retryAfterSeconds: 15,
+      });
+      return;
+    }
     const msg = err instanceof Error ? err.message : 'Reverse geocode failed';
     res.status(500).json({ error: msg });
   }

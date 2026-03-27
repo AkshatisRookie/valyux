@@ -1,4 +1,4 @@
-const API_BASE = process.env.VALYUX_API_URL || 'http://localhost:5000';
+import { fetchBackend } from './backendFetch';
 
 export interface GrocerySearchResult {
   results: any[];
@@ -17,9 +17,7 @@ export async function searchGroceryLive(
     q: query.trim(),
     pincode: pincode.trim(),
   });
-  const res = await fetch(`${API_BASE}/api/grocery/search?${params}`, {
-    signal: AbortSignal.timeout(60000),
-  });
+  const res = await fetchBackend(`/api/grocery/search?${params}`, { timeoutMs: 60000, retries: 2 });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error((err as any)?.message || (err as any)?.error || `Search failed (${res.status})`);

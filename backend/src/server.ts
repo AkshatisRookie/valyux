@@ -27,6 +27,9 @@ app.use(
 app.use(express.json());
 
 // API routes
+app.get('/api/health', (_req, res) => {
+  res.json({ ok: true, ts: new Date().toISOString() });
+});
 app.use('/api', geminiSearchRouter);
 app.use('/api', flightsRouter);
 app.use('/api', grocerySearchRouter);

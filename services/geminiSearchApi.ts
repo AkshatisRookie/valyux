@@ -1,4 +1,4 @@
-const API_BASE = process.env.VALYUX_API_URL || 'http://localhost:5000';
+import { fetchBackend } from './backendFetch';
 
 export interface GeminiSearchResult {
   results: any[];
@@ -18,9 +18,7 @@ export async function searchViaGemini(
     pincode: pincode.trim(),
     type,
   });
-  const res = await fetch(`${API_BASE}/api/gemini/search?${params}`, {
-    signal: AbortSignal.timeout(60000),
-  });
+  const res = await fetchBackend(`/api/gemini/search?${params}`, { timeoutMs: 60000, retries: 2 });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error((err as any)?.message || `Search failed (${res.status})`);
