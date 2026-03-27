@@ -13,35 +13,75 @@ function getFallbackAnalysis(
   openByPlatform?: Partial<Record<Platform, boolean>>
 ): AIAnalysis {
   const platforms = openByPlatform ? getOpenPlatforms(openByPlatform) : PLATFORMS;
-  const totals = platforms.map(p => ({
-    platform: p,
-    total: items.reduce((acc, item) => {
-      const price = item.product.platformPrices.find(pp => pp.platform === p)?.price || 0;
-      return acc + (price * item.quantity);
-    }, 0)
-  })).filter(t => t.total > 0);
-  if (totals.length === 0) {
+
+  // Mirror the fee logic used in the UI.
+  const FREE_DELIVERY_THRESHOLD = 200;
+  const DELIVERY_FEE = 30;
+  const deliveryFee = (subtotal: number) => (subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE);
+
+  // 1) Compute realistic totals for "single-platform" (platform must have ALL items).
+  const fullCartTotals = platforms
+    .map((platform) => {
+      let subtotal = 0;
+      for (const item of items) {
+        const priceObj = item.product.platformPrices.find((pp) => pp.platform === platform);
+        // Missing price => platform can't fulfill the whole cart (treat as unavailable, not 0).
+        if (!priceObj) return null;
+        subtotal += priceObj.price * item.quantity;
+      }
+
+      const total = subtotal + deliveryFee(subtotal);
+      return { platform, subtotal, total };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
+
+  // 2) Compute realistic split total:
+  //    For each cart line, pick cheapest available platform,
+  //    then group by platform and apply delivery fee per platform-group.
+  const splitGroupSubtotals = new Map<Platform, number>();
+  for (const item of items) {
+    const openPrices = openByPlatform
+      ? item.product.platformPrices.filter((pp) => openByPlatform[pp.platform] !== false)
+      : item.product.platformPrices;
+
+    if (openPrices.length === 0) {
+      // If even one item is unavailable on all open platforms, we can't give meaningful totals.
+      return {
+        cheapestPlatformTotal: { platform: PLATFORMS[0], total: 0 },
+        optimalSplitTotal: 0,
+        savingsVsHighest: 0,
+        recommendation: 'Some items are not available in the open platforms. Try adjusting your cart or location.',
+      };
+    }
+
+    const cheapest = openPrices.reduce((prev, curr) => (curr.price < prev.price ? curr : prev));
+    const lineSubtotal = cheapest.price * item.quantity;
+    splitGroupSubtotals.set(cheapest.platform, (splitGroupSubtotals.get(cheapest.platform) || 0) + lineSubtotal);
+  }
+
+  const optimalSplitTotal = Array.from(splitGroupSubtotals.entries()).reduce((acc, [platform, subtotal]) => {
+    return acc + subtotal + deliveryFee(subtotal);
+  }, 0);
+
+  // If at least one platform can fulfill the whole cart, compare against the worst full-cart option.
+  if (fullCartTotals.length > 0) {
+    const cheapest = fullCartTotals.reduce((prev, curr) => (curr.total < prev.total ? curr : prev));
+    const highest = fullCartTotals.reduce((prev, curr) => (curr.total > prev.total ? curr : prev));
+
     return {
-      cheapestPlatformTotal: { platform: PLATFORMS[0], total: 0 },
-      optimalSplitTotal: 0,
-      savingsVsHighest: 0,
-      recommendation: 'Add items to your cart to see savings.',
+      cheapestPlatformTotal: { platform: cheapest.platform, total: cheapest.total },
+      optimalSplitTotal,
+      savingsVsHighest: highest.total - optimalSplitTotal,
+      recommendation: `If you want a single order, ${cheapest.platform} is the cheapest. Splitting can reduce your total further.`,
     };
   }
-  const optimalSplit = items.reduce((acc, item) => {
-    const openPrices = openByPlatform
-      ? item.product.platformPrices.filter(pp => openByPlatform[pp.platform] !== false)
-      : item.product.platformPrices;
-    if (openPrices.length === 0) return acc;
-    const minPrice = Math.min(...openPrices.map(pp => pp.price));
-    return acc + (minPrice * item.quantity);
-  }, 0);
-  const cheapest = totals.reduce((prev, curr) => (prev.total < curr.total ? prev : curr));
+
+  // Otherwise no single platform covers every item. Recommend split without pretending single-order savings.
   return {
-    cheapestPlatformTotal: cheapest,
-    optimalSplitTotal: optimalSplit,
-    savingsVsHighest: Math.max(...totals.map(t => t.total)) - optimalSplit,
-    recommendation: `Based on your cart, buying from ${cheapest.platform} is your best bet for a single-platform order, but splitting your order could save you even more!`
+    cheapestPlatformTotal: { platform: platforms[0] || PLATFORMS[0], total: 0 },
+    optimalSplitTotal,
+    savingsVsHighest: 0,
+    recommendation: 'No single platform has prices for every item in your cart, so Smart Cart will split your order across the cheapest available platform per item.',
   };
 }
 
