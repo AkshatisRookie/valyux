@@ -1,6 +1,11 @@
 import type { Platform } from './platforms.js';
 
-/** Query param for QuickCommerce group endpoints (comma-separated, no spaces). */
+/**
+ * Comma-separated `platforms` value for upstream GET /v1/groupsearch and /v1/groupeta, e.g.
+ * `/v1/groupsearch?q=atta&lat=12.9021&lon=77.6639&platforms=BlinkIt,Zepto,Swiggy,BigBasket`
+ * (pincode is appended by our backend when available). One request returns all listed platforms;
+ * results are merged in `mergeAndUnify`.
+ */
 export const QC_GROUP_PLATFORMS =
   process.env.QC_GROUP_PLATFORMS || 'BlinkIt,Zepto,Swiggy,BigBasket';
 

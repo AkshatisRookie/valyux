@@ -136,7 +136,7 @@ router.get('/qc/groupsearch', async (req: Request, res: Response): Promise<void>
     return;
   }
 
-  const cacheKey = `gs:${q.toLowerCase()}:${lat}:${lon}:${pincode}`;
+  const cacheKey = `gs:${q.toLowerCase()}:${lat}:${lon}:${pincode}:${QC_GROUP_PLATFORMS}`;
   const cached = searchCache.get<unknown>(cacheKey);
   if (cached) {
     const { etaByPlatform: etaMap } = await getOrFetchGroupEta(lat, lon, pincode).catch(() => ({ etaByPlatform: {}, openByPlatform: {} }));

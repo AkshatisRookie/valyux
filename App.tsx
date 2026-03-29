@@ -36,6 +36,8 @@ const AppContent: React.FC = () => {
   const abortRef = useRef<AbortController | null>(null);
   const progressTimerRef = useRef<number | null>(null);
   const SIMILAR_NAME_THRESHOLD = 0.72;
+  /** When both rows have MRP from platforms, require match within this (₹) before merging */
+  const MRP_MATCH_EPS = 2;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -184,6 +186,32 @@ const AppContent: React.FC = () => {
     return qa === qb;
   };
 
+  const listingMrp = (p: Product) =>
+    Math.max(0, ...p.platformPrices.map((pp) => Number(pp.originalPrice) || 0));
+
+  const isMrpCompatible = (a: Product, b: Product) => {
+    const ma = listingMrp(a);
+    const mb = listingMrp(b);
+    if (ma <= 0 || mb <= 0) return true;
+    return Math.abs(ma - mb) <= MRP_MATCH_EPS;
+  };
+
+  /** Higher = title matches search better (upstream order is arbitrary; we were sorting by price only). */
+  const groceryQueryMatchScore = (rawQuery: string, product: Product): number => {
+    const q = normalizeNameForCompare(rawQuery).trim();
+    if (!q) return 0;
+    const hay = normalizeNameForCompare(`${product.name} ${product.brand || ''}`);
+    if (!hay) return 0;
+    if (hay.includes(q)) return 1000;
+    const qTokens = q.split(' ').filter((t) => t.length >= 2);
+    if (qTokens.length === 0) return 0;
+    let matched = 0;
+    for (const t of qTokens) {
+      if (hay.includes(t)) matched += 1;
+    }
+    return Math.round((matched / qTokens.length) * 500);
+  };
+
   const displayProducts = useMemo(() => {
     if (debouncedQuery.length < 2) return [];
 
@@ -207,7 +235,9 @@ const AppContent: React.FC = () => {
         const existingBrand = normalizeNameForCompare(existing.brand || '');
         if (candidateBrand && existingBrand && candidateBrand !== existingBrand) return false;
 
-        return isQuantityCompatible(existing.quantity, candidate.quantity);
+        if (!isQuantityCompatible(existing.quantity, candidate.quantity)) return false;
+
+        return isMrpCompatible(existing, candidate);
       });
 
       if (!target) {
@@ -234,16 +264,16 @@ const AppContent: React.FC = () => {
 
     const cheapest = (p: Product) => Math.min(...p.platformPrices.map((pp) => pp.price || Infinity));
 
-    const compared = groups
-      .filter((p) => p.platformPrices.length >= 2)
-      .sort((a, b) => cheapest(a) - cheapest(b));
-
-    const notCompared = groups
-      .filter((p) => p.platformPrices.length < 2)
-      .sort((a, b) => cheapest(a) - cheapest(b));
-
-    return [...compared, ...notCompared];
-  }, [liveProducts, debouncedQuery.length, openByPlatform]);
+    return [...groups].sort((a, b) => {
+      const ra = groceryQueryMatchScore(debouncedQuery, a);
+      const rb = groceryQueryMatchScore(debouncedQuery, b);
+      if (rb !== ra) return rb - ra;
+      const pa = a.platformPrices.length;
+      const pb = b.platformPrices.length;
+      if (pb !== pa) return pb - pa;
+      return cheapest(a) - cheapest(b);
+    });
+  }, [liveProducts, debouncedQuery, openByPlatform]);
 
   const handleAddToCart = (product: Product, platform: Platform) => {
     setCart(prev => {

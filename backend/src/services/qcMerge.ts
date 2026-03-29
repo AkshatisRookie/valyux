@@ -3,6 +3,8 @@ import type { Platform } from '../config/platforms.js';
 import { mapApiPlatformName } from '../config/qcPlatforms.js';
 
 const SIM_THRESHOLD = 0.68;
+/** ₹ tolerance when both sides report MRP (rounding / minor catalogue drift) */
+const MRP_MATCH_EPS = 2;
 
 export interface QcFlatProduct {
   id: string;
@@ -56,6 +58,14 @@ export function quantityCompatible(a: QcFlatProduct, b: QcFlatProduct): boolean 
   const qaNorm = qa.replace(/(\d+)\s*(ml|l|g|kg|pc|pcs|nos?)$/i, '$1$2');
   const qbNorm = qb.replace(/(\d+)\s*(ml|l|g|kg|pc|pcs|nos?)$/i, '$1$2');
   return qaNorm === qbNorm;
+}
+
+/** Require same MRP when both listings include it; unknown (0) skips this gate like quantity */
+export function mrpCompatible(a: QcFlatProduct, b: QcFlatProduct): boolean {
+  const ma = Number(a.mrp) || 0;
+  const mb = Number(b.mrp) || 0;
+  if (ma <= 0 || mb <= 0) return true;
+  return Math.abs(ma - mb) <= MRP_MATCH_EPS;
 }
 
 export function flattenQcResults(data: unknown): QcFlatProduct[] {
@@ -146,6 +156,7 @@ export function mergeAndUnify(
       const repItem = g.items[0];
       if (
         quantityCompatible(repItem, item) &&
+        mrpCompatible(repItem, item) &&
         compareTwoStrings(g.rep, sig) >= SIM_THRESHOLD
       ) {
         g.items.push(item);
