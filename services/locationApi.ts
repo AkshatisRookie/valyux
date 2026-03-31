@@ -17,7 +17,7 @@ export interface ReverseGeocodeResult {
 }
 
 /**
- * Address autocomplete (India) via backend → OpenStreetMap Nominatim.
+ * Address autocomplete (India) via backend → Mapbox Geocoding.
  */
 export async function fetchAddressSuggestions(query: string): Promise<AddressSuggestion[]> {
   const q = query.trim();
@@ -36,7 +36,7 @@ export async function fetchAddressSuggestions(query: string): Promise<AddressSug
 }
 
 /**
- * Reverse geocode lat/lon to {pincode, addressLabel} via backend → Nominatim.
+ * Reverse geocode lat/lon to {pincode, addressLabel} via backend → Mapbox Geocoding.
  */
 export async function reverseGeocodeLatLon(lat: number, lon: number): Promise<ReverseGeocodeResult> {
   const params = new URLSearchParams({

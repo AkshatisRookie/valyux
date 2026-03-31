@@ -3,11 +3,11 @@ import NodeCache from 'node-cache';
 
 const router = Router();
 
-/** Nominatim — see https://operations.osmfoundation.org/policies/nominatim/ */
-const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
-
-const USER_AGENT = process.env.NOMINATIM_USER_AGENT || 'Valyux/1.0 (contact:support@valyux.local)';
-const LOCATIONIQ_KEY = (process.env.LOCATIONIQ_API_KEY || '').trim();
+/** Mapbox Geocoding (forward + reverse). */
+const MAPBOX_BASE =
+  process.env.MAPBOX_GEOCODING_BASE || 'https://api.mapbox.com/geocoding/v5/mapbox.places';
+const MAPBOX_ACCESS_TOKEN = (process.env.MAPBOX_ACCESS_TOKEN || '').trim();
+const MAPBOX_COUNTRY = (process.env.MAPBOX_COUNTRY || 'in').toLowerCase();
 
 /**
  * Simple in-memory scheduler to keep upstream calls under a global RPS cap.
@@ -50,43 +50,45 @@ const reverseCooldownCache = new NodeCache({ stdTTL: 600, checkperiod: 60 }); //
 // Also protect autocomplete endpoint from hammering Nominatim.
 const autocompleteCooldownCache = new NodeCache({ stdTTL: 120, checkperiod: 60 }); // 2m
 
-interface NominatimItem {
-  place_id: number;
-  lat: string;
-  lon: string;
-  display_name: string;
-  address?: {
-    postcode?: string;
-    city?: string;
-    town?: string;
-    village?: string;
-    state?: string;
-    suburb?: string;
-    neighbourhood?: string;
-    road?: string;
-  };
+interface MapboxFeature {
+  id?: string;
+  place_name?: string;
+  text?: string;
+  /** [lon, lat] */
+  center?: [number, number];
+  place_type?: string[];
+  context?: Array<{ id?: string; text?: string }>;
 }
 
-function extractPincode(item: NominatimItem): string | null {
-  const raw = item.address?.postcode?.trim() || '';
-  const digitsOnly = raw.replace(/\D/g, '');
-  if (digitsOnly.length === 6) return digitsOnly;
-  const m = item.display_name.match(/\b(\d{6})\b/);
-  return m ? m[1] : null;
-}
+function extractPincodeFromFeature(feature: MapboxFeature): string | null {
+  const placeTypes = feature.place_type || [];
 
-function shortLabel(item: NominatimItem): string {
-  const a = item.address;
-  if (!a) return item.display_name.split(',').slice(0, 3).join(',').trim();
-  const parts: string[] = [];
-  if (a.road || a.neighbourhood || a.suburb) {
-    parts.push([a.road, a.neighbourhood, a.suburb].filter(Boolean).join(', '));
+  // If this feature is already a postcode, Mapbox usually puts it in `text`.
+  if (placeTypes.includes('postcode')) {
+    const digits = String(feature.text || '').replace(/\D/g, '');
+    if (digits.length === 6) return digits;
   }
-  const locality = a.city || a.town || a.village || '';
-  if (locality) parts.push(locality);
-  if (a.state) parts.push(a.state);
-  const joined = parts.filter(Boolean).join(' · ');
-  return joined || item.display_name.split(',').slice(0, 2).join(',').trim();
+
+  // Otherwise, check context entries like { id: 'postcode.560001', text: '560001' }.
+  const ctx = feature.context || [];
+  const pc = ctx.find((c) => (c.id || '').toLowerCase().startsWith('postcode.'));
+  if (pc?.text) {
+    const digits = String(pc.text).replace(/\D/g, '');
+    if (digits.length === 6) return digits;
+  }
+
+  return null;
+}
+
+function shortLabelFromPlaceName(placeName: string): string {
+  const cleaned = (placeName || '').replace(/\s+/g, ' ').trim();
+  if (!cleaned) return '';
+  const parts = cleaned
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .filter((p) => p.toLowerCase() !== 'india');
+  return (parts.slice(0, 3).join(', ') || cleaned).trim();
 }
 
 /** GET /api/location/autocomplete?q=... */
@@ -112,19 +114,27 @@ router.get('/location/autocomplete', async (req: Request, res: Response): Promis
     return;
   }
 
-  const url = new URL(NOMINATIM);
-  url.searchParams.set('q', q);
-  url.searchParams.set('format', 'json');
-  url.searchParams.set('addressdetails', '1');
-  url.searchParams.set('countrycodes', 'in');
-  url.searchParams.set('limit', '8');
+  if (!MAPBOX_ACCESS_TOKEN) {
+    res.status(500).json({
+      error: 'Mapbox access token missing',
+      message: 'Set MAPBOX_ACCESS_TOKEN in backend/.env',
+    });
+    return;
+  }
+
+  const url = `${MAPBOX_BASE}/${encodeURIComponent(q)}.json`;
+  const params = new URLSearchParams({
+    access_token: MAPBOX_ACCESS_TOKEN,
+    country: MAPBOX_COUNTRY,
+    limit: '8',
+    // Include postcode so we can populate `pincode` for live grocery search.
+    types: 'address,place,postcode',
+    autocomplete: 'true',
+  });
 
   try {
-    const upstream = await fetch(url.toString(), {
-      headers: {
-        Accept: 'application/json',
-        'User-Agent': USER_AGENT,
-      },
+    const upstream = await fetch(`${url}?${params.toString()}`, {
+      headers: { Accept: 'application/json' },
       signal: AbortSignal.timeout(15000),
     });
 
@@ -142,19 +152,25 @@ router.get('/location/autocomplete', async (req: Request, res: Response): Promis
       return;
     }
 
-    const data = (await upstream.json()) as NominatimItem[];
+    const data = (await upstream.json()) as { features?: MapboxFeature[] };
+    const features = Array.isArray(data.features) ? data.features : [];
 
-    const results = data
-      .map((item) => {
-        const pincode = extractPincode(item);
+    const results = features
+      .map((feature) => {
+        const pincode = extractPincodeFromFeature(feature);
         if (!pincode) return null;
+        const center = feature.center;
+        if (!center || center.length !== 2) return null;
+        const [lon, lat] = center;
+
+        const placeName = String(feature.place_name || '');
         return {
-          id: String(item.place_id),
-          label: shortLabel(item),
-          fullLabel: item.display_name,
+          id: String(feature.id ?? `${pincode}:${placeName}`),
+          label: shortLabelFromPlaceName(placeName),
+          fullLabel: placeName,
           pincode,
-          lat: item.lat,
-          lon: item.lon,
+          lat: String(lat),
+          lon: String(lon),
         };
       })
       .filter((x): x is NonNullable<typeof x> => x !== null);
@@ -177,36 +193,51 @@ router.get('/location/pincode-geocode', async (req: Request, res: Response): Pro
     return;
   }
 
-  const url = new URL(NOMINATIM);
-  url.searchParams.set('q', `${pincode} India`);
-  url.searchParams.set('format', 'json');
-  url.searchParams.set('addressdetails', '1');
-  url.searchParams.set('countrycodes', 'in');
-  url.searchParams.set('limit', '1');
+  if (!MAPBOX_ACCESS_TOKEN) {
+    res.status(500).json({
+      error: 'Mapbox access token missing',
+      message: 'Set MAPBOX_ACCESS_TOKEN in backend/.env',
+    });
+    return;
+  }
+
+  const url = `${MAPBOX_BASE}/${encodeURIComponent(pincode)}.json`;
+  const params = new URLSearchParams({
+    access_token: MAPBOX_ACCESS_TOKEN,
+    country: MAPBOX_COUNTRY,
+    limit: '1',
+    types: 'postcode',
+  });
 
   try {
-    const upstream = await fetch(url.toString(), {
-      headers: {
-        Accept: 'application/json',
-        'User-Agent': USER_AGENT,
-      },
+    const upstream = await fetch(`${url}?${params.toString()}`, {
+      headers: { Accept: 'application/json' },
       signal: AbortSignal.timeout(15000),
     });
     if (!upstream.ok) {
       res.status(502).json({ error: 'Geocoding failed' });
       return;
     }
-    const data = (await upstream.json()) as NominatimItem[];
-    const first = Array.isArray(data) && data[0];
+    const data = (await upstream.json()) as { features?: MapboxFeature[] };
+    const features = Array.isArray(data.features) ? data.features : [];
+    const first = features[0];
     if (!first) {
       res.status(404).json({ error: 'Could not locate pincode' });
       return;
     }
+
+    const center = first.center;
+    if (!center || center.length !== 2) {
+      res.status(404).json({ error: 'Could not locate pincode' });
+      return;
+    }
+
+    const [lon, lat] = center;
     res.json({
-      pincode,
-      lat: first.lat,
-      lon: first.lon,
-      label: shortLabel(first),
+      pincode: extractPincodeFromFeature(first) || pincode,
+      lat: String(lat),
+      lon: String(lon),
+      label: shortLabelFromPlaceName(String(first.place_name || `Pincode ${pincode}`)),
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Geocode failed';
@@ -245,10 +276,10 @@ router.get('/location/reverse', async (req: Request, res: Response): Promise<voi
     return;
   }
 
-  if (!LOCATIONIQ_KEY) {
+  if (!MAPBOX_ACCESS_TOKEN) {
     res.status(500).json({
-      error: 'LocationIQ API key missing',
-      message: 'Set LOCATIONIQ_API_KEY in backend/.env',
+      error: 'Mapbox access token missing',
+      message: 'Set MAPBOX_ACCESS_TOKEN in backend/.env',
     });
     return;
   }
@@ -264,20 +295,21 @@ router.get('/location/reverse', async (req: Request, res: Response): Promise<voi
     return;
   }
 
-  const url = new URL('https://us1.locationiq.com/v1/reverse');
-  url.searchParams.set('key', LOCATIONIQ_KEY);
-  url.searchParams.set('lat', String(lat));
-  url.searchParams.set('lon', String(lon));
-  url.searchParams.set('format', 'json');
+  const url = `${MAPBOX_BASE}/${encodeURIComponent(String(lon))},${encodeURIComponent(String(lat))}.json`;
+  const params = new URLSearchParams({
+    access_token: MAPBOX_ACCESS_TOKEN,
+    country: MAPBOX_COUNTRY,
+    limit: '1',
+    types: 'postcode,address,place',
+    reverse_geocode: 'true',
+  });
 
   try {
     // Global upstream throttle: keeps bursts (e.g. many users clicking at once) under LocationIQ limits.
     await scheduleLocationIq();
 
-    const upstream = await fetch(url.toString(), {
-      headers: {
-        Accept: 'application/json',
-      },
+    const upstream = await fetch(`${url}?${params.toString()}`, {
+      headers: { Accept: 'application/json' },
       signal: AbortSignal.timeout(15000),
     });
 
@@ -310,41 +342,25 @@ router.get('/location/reverse', async (req: Request, res: Response): Promise<voi
       return;
     }
 
-    const data = (await upstream.json()) as {
-      lat?: string;
-      lon?: string;
-      display_name?: string;
-      address?: {
-        postcode?: string;
-        city?: string;
-        town?: string;
-        village?: string;
-        state?: string;
-        suburb?: string;
-        neighbourhood?: string;
-        road?: string;
-      };
-    };
+    const data = (await upstream.json()) as { features?: MapboxFeature[] };
+    const features = Array.isArray(data.features) ? data.features : [];
+    const first = features[0];
+    if (!first) {
+      res.status(404).json({ error: 'Could not extract pincode from your location' });
+      return;
+    }
 
-    const item: NominatimItem = {
-      place_id: 0,
-      lat: String(data.lat ?? lat),
-      lon: String(data.lon ?? lon),
-      display_name: String(data.display_name ?? `${lat},${lon}`),
-      address: data.address,
-    };
-
-    const pincode = extractPincode(item);
-    if (!pincode) {
+    const extractedPincode = extractPincodeFromFeature(first);
+    if (!extractedPincode) {
       res.status(404).json({ error: 'Could not extract pincode from your location' });
       return;
     }
 
     const payload = {
-      pincode,
-      addressLabel: shortLabel(item),
-      lat: String(item.lat),
-      lon: String(item.lon),
+      pincode: extractedPincode,
+      addressLabel: shortLabelFromPlaceName(String(first.place_name || `${lat},${lon}`)),
+      lat: String(first.center?.[1] ?? lat),
+      lon: String(first.center?.[0] ?? lon),
     };
     reverseCache.set(key, payload);
     res.json(payload);

@@ -42,7 +42,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
 
   const getPlatformColor = (platform: Platform) => {
     switch (platform) {
-      case 'BigBasket': return 'text-green-600 dark:text-green-400 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20';
+      case 'JioMart': return 'text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20';
       case 'Blinkit':   return 'text-yellow-600 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20';
       case 'Instamart':  return 'text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20';
       case 'Zepto':     return 'text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-900/20';
@@ -52,7 +52,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
 
   const getPlatformIcon = (platform: Platform) => {
     switch (platform) {
-      case 'BigBasket': return 'https://www.bigbasket.com/favicon.ico';
+      case 'JioMart': return 'https://www.google.com/s2/favicons?domain=jiomart.com&sz=128';
       case 'Blinkit':   return 'https://blinkit.com/favicon.ico';
       case 'Instamart':  return 'https://www.google.com/s2/favicons?domain=swiggy.com&sz=128';
       case 'Zepto':     return 'https://www.zepto.com/favicon.ico';

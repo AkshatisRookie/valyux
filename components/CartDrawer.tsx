@@ -16,7 +16,7 @@ interface CartDrawerProps {
 }
 
 const PLATFORM_ICONS: Record<Platform, string> = {
-  BigBasket: 'https://www.bigbasket.com/favicon.ico',
+  JioMart: 'https://www.jiomart.com/favicon.ico',
   Blinkit: 'https://blinkit.com/favicon.ico',
   Instamart: 'https://www.google.com/s2/favicons?domain=swiggy.com&sz=128',
   Zepto: 'https://www.zepto.com/favicon.ico',
@@ -77,9 +77,9 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
 
   const platformTotals = useMemo(() => {
     const totals: Record<Platform, number> = {
-      BigBasket: 0, Blinkit: 0, Instamart: 0, Zepto: 0,
+      JioMart: 0, Blinkit: 0, Instamart: 0, Zepto: 0,
     };
-    const openPlatforms = (['BigBasket', 'Blinkit', 'Instamart', 'Zepto'] as Platform[]).filter(
+    const openPlatforms = (['JioMart', 'Blinkit', 'Instamart', 'Zepto'] as Platform[]).filter(
       (p) => openByPlatform[p] !== false
     );
     groceryItems.forEach(item => {
@@ -93,7 +93,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
 
   const cheapestPlatform = useMemo(() => {
     if (groceryItems.length === 0) return null;
-    const openPlatforms = (['BigBasket', 'Blinkit', 'Instamart', 'Zepto'] as Platform[]).filter(
+    const openPlatforms = (['JioMart', 'Blinkit', 'Instamart', 'Zepto'] as Platform[]).filter(
       (p) => openByPlatform[p] !== false
     );
     let minPlatform: Platform | null = null;

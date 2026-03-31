@@ -2,7 +2,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { CartItem, AIAnalysis, Platform } from "../types";
 
-const PLATFORMS: Platform[] = ['BigBasket', 'Blinkit', 'Instamart', 'Zepto'];
+const PLATFORMS: Platform[] = ['JioMart', 'Blinkit', 'Instamart', 'Zepto'];
 
 function getOpenPlatforms(openByPlatform: Partial<Record<Platform, boolean>>): Platform[] {
   return PLATFORMS.filter(p => openByPlatform[p] !== false);

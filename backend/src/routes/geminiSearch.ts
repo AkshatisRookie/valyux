@@ -7,7 +7,7 @@ const SCRAPER_API_URL = process.env.SCRAPER_API_URL || '';
 const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY || '';
 
 /** Grocery platforms */
-const GROCERY_PLATFORMS: Platform[] = ['BigBasket', 'Blinkit', 'Instamart', 'Zepto'];
+const GROCERY_PLATFORMS: Platform[] = ['JioMart', 'Blinkit', 'Instamart', 'Zepto'];
 
 /** Electronics platforms */
 const ELECTRONICS_PLATFORMS = ['Amazon', 'Flipkart'] as const;
@@ -24,7 +24,7 @@ function buildProductUrl(platform: string, query: string): string {
   if (meta) {
     const base = meta.baseUrl.replace(/\/$/, '');
     const paths: Record<string, string> = {
-      BigBasket: '/ps/?q=',
+      JioMart: '/search?q=',
       Blinkit: '/s/?q=',
       Instamart: '?q=',
       Zepto: '/search?q=',

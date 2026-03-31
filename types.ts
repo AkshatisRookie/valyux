@@ -1,5 +1,5 @@
 
-export type Platform = 'BigBasket' | 'Blinkit' | 'Instamart' | 'Zepto';
+export type Platform = 'JioMart' | 'Blinkit' | 'Instamart' | 'Zepto';
 
 export type ElectronicsRetailer = 'Amazon' | 'Flipkart';
 

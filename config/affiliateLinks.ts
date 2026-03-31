@@ -1,7 +1,7 @@
 import type { Platform } from '../types';
 
 const DEFAULT_URLS: Record<Platform, string> = {
-  BigBasket: 'https://www.bigbasket.com',
+  JioMart: 'https://www.jiomart.com',
   Blinkit: 'https://blinkit.com',
   Instamart: 'https://www.swiggy.com/instamart',
   Zepto: 'https://www.zepto.com',
@@ -9,7 +9,7 @@ const DEFAULT_URLS: Record<Platform, string> = {
 
 // Search path per platform (?q= or /search?q= etc.) – built from default base so search always works
 const SEARCH_PATHS: Record<Platform, string> = {
-  BigBasket: '/ps/?q=',
+  JioMart: '/search?q=',
   Blinkit: '/s/?q=',
   Instamart: '?q=',
   Zepto: '/search?q=',
@@ -17,7 +17,7 @@ const SEARCH_PATHS: Record<Platform, string> = {
 
 // Referenced explicitly so Parcel injects them from .env at build time (backup for when you have affiliate links)
 const AFFILIATE_URLS: Record<Platform, string> = {
-  BigBasket: process.env.AFFILIATE_BIGBASKET || DEFAULT_URLS.BigBasket,
+  JioMart: process.env.AFFILIATE_JIOMART || DEFAULT_URLS.JioMart,
   Blinkit: process.env.AFFILIATE_BLINKIT || DEFAULT_URLS.Blinkit,
   Instamart: process.env.AFFILIATE_INSTAMART || DEFAULT_URLS.Instamart,
   Zepto: process.env.AFFILIATE_ZEPTO || DEFAULT_URLS.Zepto,
