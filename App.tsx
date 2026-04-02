@@ -400,7 +400,7 @@ const AppContent: React.FC = () => {
                   ) : null}
                   <span className="text-neutral-500 dark:text-neutral-400">Pincode {pincode}</span>
                 </p>
-                <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2">
+                <div className="mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
                   <button
                     type="button"
                     onClick={() => setDeliveryLocation({ pincode: '', addressLabel: '' })}

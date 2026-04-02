@@ -109,7 +109,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
         {/* Best price — icon left; price + actions on top, delivery time on next line (avoids overlap on narrow screens) */}
         <div className={`mt-auto rounded-lg border px-2.5 py-2.5 ${getPlatformColor(cheapestPrice.platform)} ring-1 ring-yellow-400/80`}>
           <div className="flex gap-2">
-            <span className="mt-0.5 w-3.5 h-3.5 shrink-0 rounded-full overflow-hidden inline-flex items-center justify-center bg-white/80 dark:bg-neutral-700/80 ring-1 ring-black/5 dark:ring-white/10">
+            <span className="mt-0.5 w-6 h-6 shrink-0 rounded-full overflow-hidden inline-flex items-center justify-center bg-white/80 dark:bg-neutral-700/80 ring-1 ring-black/5 dark:ring-white/10">
               <img src={getPlatformIcon(cheapestPrice.platform)} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             </span>
             <div className="min-w-0 flex-1 flex flex-col gap-0.5 items-end text-right">
@@ -161,7 +161,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
                     className={`flex items-start gap-2 py-1.5 px-2 rounded-md ${getPlatformColor(pp.platform)}`}
                   >
                     <div className="flex gap-1.5 min-w-0 flex-1">
-                      <span className="mt-0.5 w-3 h-3 shrink-0 rounded-full overflow-hidden inline-flex">
+                      <span className="mt-0.5 w-8 h-8 shrink-0 rounded-full overflow-hidden inline-flex">
                         <img src={getPlatformIcon(pp.platform)} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                       </span>
                       <div className="min-w-0 flex-1 flex flex-col gap-0.5 items-end text-right">
