@@ -26,8 +26,7 @@ interface PincodeContextValue {
 const PincodeContext = createContext<PincodeContextValue | null>(null);
 
 export function PincodeProvider({ children }: { children: React.ReactNode }) {
-  const [location, setLocationState] = useState<StoredLocation>({ pincode: '', addressLabel: '' });
-  const [mounted, setMounted] = useState(false);
+  const [location, setLocationState] = useState<StoredLocation>(() => getStoredLocation());
   const [etaByPlatform, setEtaByPlatform] = useState<Partial<Record<Platform, string>>>({});
   const [openByPlatform, setOpenByPlatform] = useState<Partial<Record<Platform, boolean>>>({});
   const [etaLoading, setEtaLoading] = useState(false);
@@ -35,7 +34,6 @@ export function PincodeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setLocationState(getStoredLocation());
-    setMounted(true);
   }, []);
 
   const setDeliveryLocation = useCallback((loc: StoredLocation) => {
@@ -53,7 +51,6 @@ export function PincodeProvider({ children }: { children: React.ReactNode }) {
 
   /** Backfill coordinates for saved sessions that only had pincode */
   useEffect(() => {
-    if (!mounted) return;
     if (!/^\d{6}$/.test(location.pincode)) return;
     if (location.lat && location.lon) return;
     let cancelled = false;
@@ -77,10 +74,9 @@ export function PincodeProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [mounted, location.pincode, location.lat, location.lon]);
+  }, [location.pincode, location.lat, location.lon]);
 
   useEffect(() => {
-    if (!mounted) return;
     if (!/^\d{6}$/.test(location.pincode)) return;
     if (!location.lat || !location.lon) return;
     let cancelled = false;
@@ -104,7 +100,7 @@ export function PincodeProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [mounted, location.pincode, location.lat, location.lon]);
+  }, [location.pincode, location.lat, location.lon]);
 
   const hasCoords = Boolean(location.lat && location.lon && !Number.isNaN(Number(location.lat)) && !Number.isNaN(Number(location.lon)));
 
@@ -120,7 +116,7 @@ export function PincodeProvider({ children }: { children: React.ReactNode }) {
         etaLoading,
         etaError,
         setDeliveryLocation,
-        hasPincode: mounted ? /^\d{6}$/.test(location.pincode) : false,
+        hasPincode: /^\d{6}$/.test(location.pincode),
         hasCoords,
       }}
     >

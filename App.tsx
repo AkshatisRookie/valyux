@@ -13,18 +13,31 @@ import { Product, Platform, CartItem, AppSection, ElectronicsCartItem } from './
 import { searchGroupQuickCommerce } from './services/quickCommerceApi';
 import { reverseGeocodeLatLon } from './services/locationApi';
 import { useDebounce } from './utils/useDebounce';
+import {
+  loadActiveSection,
+  loadElectronicsCart,
+  loadElectronicsSearch,
+  loadGroceryCart,
+  loadGrocerySearch,
+  saveActiveSection,
+  saveElectronicsCart,
+  saveElectronicsSearch,
+  saveGroceryCart,
+  saveGrocerySearch,
+} from './utils/appPersistence';
 import GroceryPlatformLogos from './components/GroceryPlatformLogos';
 import GroceryCategoryNav from './components/GroceryCategoryNav';
 import HowItWorks from './components/HowItWorks';
+import FloatingCartBar from './components/FloatingCartBar';
 
 const AppContent: React.FC = () => {
   const { pincode, addressLabel, lat, lon, setDeliveryLocation, hasPincode, hasCoords, etaLoading, etaError, openByPlatform } = usePincode();
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [electronicsCart, setElectronicsCart] = useState<ElectronicsCartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => loadGroceryCart());
+  const [electronicsCart, setElectronicsCart] = useState<ElectronicsCartItem[]>(() => loadElectronicsCart());
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [electronicsSearchQuery, setElectronicsSearchQuery] = useState('');
-  const [activeSection, setActiveSection] = useState<AppSection>('grocery');
+  const [searchQuery, setSearchQuery] = useState(() => loadGrocerySearch());
+  const [electronicsSearchQuery, setElectronicsSearchQuery] = useState(() => loadElectronicsSearch());
+  const [activeSection, setActiveSection] = useState<AppSection>(() => loadActiveSection());
 
   const [liveProducts, setLiveProducts] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -36,6 +49,26 @@ const AppContent: React.FC = () => {
 
   const debouncedQuery = useDebounce(searchQuery, 600);
   const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    saveGroceryCart(cart);
+  }, [cart]);
+
+  useEffect(() => {
+    saveElectronicsCart(electronicsCart);
+  }, [electronicsCart]);
+
+  useEffect(() => {
+    saveGrocerySearch(searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    saveElectronicsSearch(electronicsSearchQuery);
+  }, [electronicsSearchQuery]);
+
+  useEffect(() => {
+    saveActiveSection(activeSection);
+  }, [activeSection]);
   const progressTimerRef = useRef<number | null>(null);
   const SIMILAR_NAME_THRESHOLD = 0.72;
   /** When both rows have MRP from platforms, require match within this (₹) before merging */
@@ -362,6 +395,24 @@ const AppContent: React.FC = () => {
   const electronicsCartCount = electronicsCart.reduce((acc, item) => acc + item.quantity, 0);
   const cartCount = activeSection === 'grocery' ? groceryCartCount : electronicsCartCount;
 
+  const groceryCartSubtotal = useMemo(
+    () =>
+      cart.reduce((acc, item) => {
+        const price =
+          item.product.platformPrices.find((pp) => pp.platform === item.selectedPlatform)?.price ?? 0;
+        return acc + price * item.quantity;
+      }, 0),
+    [cart]
+  );
+
+  const electronicsCartSubtotal = useMemo(
+    () => electronicsCart.reduce((acc, item) => acc + item.price * item.quantity, 0),
+    [electronicsCart]
+  );
+
+  const floatingBarTotal = activeSection === 'grocery' ? groceryCartSubtotal : electronicsCartSubtotal;
+  const showFloatingCartBar = cartCount > 0 && !isCartOpen;
+
   if (!hasPincode) {
     return (
       <div className="min-h-screen flex flex-col bg-white dark:bg-neutral-950 transition-colors duration-300">
@@ -381,7 +432,9 @@ const AppContent: React.FC = () => {
         onSectionChange={setActiveSection}
       />
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
+      <main
+        className={`flex-1 max-w-6xl mx-auto w-full px-4 py-6 ${showFloatingCartBar ? 'pb-24 sm:pb-28' : ''}`}
+      >
         {activeSection === 'grocery' && (
           <>
             <div className="mb-4 flex flex-col items-center text-center sm:mb-5">
@@ -548,6 +601,14 @@ const AppContent: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {showFloatingCartBar && (
+        <FloatingCartBar
+          itemCount={cartCount}
+          totalRupee={floatingBarTotal}
+          onViewCart={() => setIsCartOpen(true)}
+        />
       )}
 
       {isCartOpen && (
