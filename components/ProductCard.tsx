@@ -70,17 +70,23 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
 
   return (
     <div className="bg-white dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 overflow-hidden flex flex-col">
-      <div className="relative aspect-square p-4 bg-neutral-50 dark:bg-neutral-800">
+      <div className="relative aspect-square overflow-hidden bg-neutral-50 dark:bg-neutral-800">
         {product.imageUrl ? (
           <img
             src={product.imageUrl}
             alt={product.name}
-            className="w-full h-full object-contain"
+            width={400}
+            height={400}
+            className="absolute inset-4 h-[calc(100%-2rem)] w-[calc(100%-2rem)] object-contain"
+            loading="lazy"
+            decoding="async"
             onError={(e) => { (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE; }}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-neutral-400">
-            <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" /></svg>
+          <div className="absolute inset-0 flex items-center justify-center text-neutral-400">
+            <svg className="h-12 w-12 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
+            </svg>
           </div>
         )}
         {discountPct > 0 && (
@@ -90,10 +96,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
         )}
       </div>
 
-      <div className="p-3 flex-1 flex flex-col">
-        <p className="text-xs text-neutral-500 mb-0.5">{product.brand}</p>
-        <h3 className="font-medium text-neutral-900 dark:text-white text-sm line-clamp-2 mb-1">{product.name}</h3>
-        <p className="text-xs text-neutral-500 mb-3">{product.quantity}</p>
+      <div className="flex flex-1 flex-col p-3">
+        <p className="mb-0.5 min-h-[1rem] text-xs text-neutral-500">{product.brand}</p>
+        <h3 className="mb-1 min-h-[2.5rem] text-sm font-medium leading-snug text-neutral-900 line-clamp-2 dark:text-white">
+          {product.name}
+        </h3>
+        <p className="mb-3 min-h-[1rem] text-xs text-neutral-500">{product.quantity}</p>
         <div className="mb-3 flex flex-wrap items-center gap-1.5">
           {product.platformPrices.length >= 2 ? (
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800">
@@ -107,12 +115,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
         </div>
 
         {/* Best price — icon left; price + actions on top, delivery time on next line (avoids overlap on narrow screens) */}
-        <div className={`mt-auto rounded-lg border px-2.5 py-2.5 ${getPlatformColor(cheapestPrice.platform)} ring-1 ring-yellow-400/80`}>
+        <div className={`mt-auto min-h-[4.75rem] rounded-lg border px-2.5 py-2.5 ${getPlatformColor(cheapestPrice.platform)} ring-1 ring-yellow-400/80`}>
           <div className="flex gap-2">
-            <span className="mt-0.5 w-6 h-6 shrink-0 rounded-full overflow-hidden inline-flex items-center justify-center bg-white/80 dark:bg-neutral-700/80 ring-1 ring-black/5 dark:ring-white/10">
-              <img src={getPlatformIcon(cheapestPrice.platform)} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/80 ring-1 ring-black/5 dark:bg-neutral-700/80 dark:ring-white/10">
+              <img
+                src={getPlatformIcon(cheapestPrice.platform)}
+                alt=""
+                width={24}
+                height={24}
+                className="h-full w-full object-cover"
+                loading="lazy"
+                decoding="async"
+                referrerPolicy="no-referrer"
+              />
             </span>
-            <div className="min-w-0 flex-1 flex flex-col gap-0.5 items-end text-right">
+            <div className="flex min-w-0 flex-1 flex-col items-end gap-0.5 text-right">
               <div className="flex w-full items-center justify-end gap-1">
                 <span className="text-base font-bold tabular-nums whitespace-nowrap">₹{cheapestPrice.price}</span>
                 <a
@@ -132,11 +149,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
                   +
                 </button>
               </div>
-              {cheapestPrice.deliveryTime && (
-                <div className="w-full flex justify-end">
-                  <DeliveryTimeLabel value={cheapestPrice.deliveryTime} />
-                </div>
-              )}
+              <div className="flex min-h-[1.125rem] w-full justify-end">
+                {cheapestPrice.deliveryTime ? <DeliveryTimeLabel value={cheapestPrice.deliveryTime} /> : null}
+              </div>
             </div>
           </div>
         </div>
@@ -161,8 +176,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
                     className={`flex items-start gap-2 py-1.5 px-2 rounded-md ${getPlatformColor(pp.platform)}`}
                   >
                     <div className="flex gap-1.5 min-w-0 flex-1">
-                      <span className="mt-0.5 w-8 h-8 shrink-0 rounded-full overflow-hidden inline-flex">
-                        <img src={getPlatformIcon(pp.platform)} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 overflow-hidden rounded-full">
+                        <img
+                          src={getPlatformIcon(pp.platform)}
+                          alt=""
+                          width={32}
+                          height={32}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                          decoding="async"
+                          referrerPolicy="no-referrer"
+                        />
                       </span>
                       <div className="min-w-0 flex-1 flex flex-col gap-0.5 items-end text-right">
                         <div className="flex w-full items-center justify-end gap-1">
@@ -183,14 +207,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
                             +
                           </button>
                         </div>
-                        {pp.deliveryTime && (
-                          <div className="w-full flex justify-end">
+                        <div className="flex min-h-[1rem] w-full justify-end">
+                          {pp.deliveryTime ? (
                             <DeliveryTimeLabel
                               value={pp.deliveryTime}
                               className="text-[9px] text-neutral-500 dark:text-neutral-400"
                             />
-                          </div>
-                        )}
+                          ) : null}
+                        </div>
                       </div>
                     </div>
                   </li>
@@ -208,5 +232,26 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
     </div>
   );
 };
+
+/** Same outer dimensions as `ProductCard` so loading → results does not shift the grid (CLS). */
+export const ProductCardSkeleton: React.FC = () => (
+  <div className="flex flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white animate-pulse dark:border-neutral-700 dark:bg-neutral-800">
+    <div className="aspect-square bg-neutral-100 dark:bg-neutral-700" />
+    <div className="flex flex-1 flex-col gap-2 p-3">
+      <div className="min-h-[1rem] w-14 rounded bg-neutral-200 dark:bg-neutral-600" />
+      <div className="min-h-[2.5rem] space-y-1.5">
+        <div className="h-3.5 w-full rounded bg-neutral-200 dark:bg-neutral-600" />
+        <div className="h-3.5 w-4/5 rounded bg-neutral-200 dark:bg-neutral-600" />
+      </div>
+      <div className="min-h-[1rem] w-24 rounded bg-neutral-200 dark:bg-neutral-600" />
+      <div className="h-5 w-28 rounded-full bg-neutral-200 dark:bg-neutral-600" />
+      <div className="mt-auto min-h-[4.75rem] rounded-lg bg-neutral-200 dark:bg-neutral-600" />
+    </div>
+    <div className="flex h-10 items-center justify-between border-t border-neutral-100 bg-neutral-50 px-3 dark:border-neutral-700 dark:bg-neutral-800/80">
+      <div className="h-3 w-8 rounded bg-neutral-200 dark:bg-neutral-600" />
+      <div className="h-3 w-14 rounded bg-neutral-200 dark:bg-neutral-600" />
+    </div>
+  </div>
+);
 
 export default ProductCard;

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Navbar from './components/Navbar';
-import ProductCard from './components/ProductCard';
+import ProductCard, { ProductCardSkeleton } from './components/ProductCard';
 import CartDrawer from './components/CartDrawer';
 import ElectronicsPage from './components/electronics/ElectronicsPage';
 import FlightsPage from './components/flights/FlightsPage';
@@ -15,6 +15,7 @@ import { reverseGeocodeLatLon } from './services/locationApi';
 import { useDebounce } from './utils/useDebounce';
 import GroceryPlatformLogos from './components/GroceryPlatformLogos';
 import GroceryCategoryNav from './components/GroceryCategoryNav';
+import HowItWorks from './components/HowItWorks';
 
 const AppContent: React.FC = () => {
   const { pincode, addressLabel, lat, lon, setDeliveryLocation, hasPincode, hasCoords, etaLoading, etaError, openByPlatform } = usePincode();
@@ -432,7 +433,10 @@ const AppContent: React.FC = () => {
             <GroceryPlatformLogos />
 
             {searchQuery.trim().length === 0 && (
-              <GroceryCategoryNav onPickSearch={setSearchQuery} />
+              <>
+                <GroceryCategoryNav onPickSearch={setSearchQuery} />
+                <HowItWorks />
+              </>
             )}
 
             {searchQuery.length >= 2 && (
@@ -453,37 +457,28 @@ const AppContent: React.FC = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-              {displayProducts.map(product => (
-                <ProductCard key={product.id} product={product} onAddToCart={handleAddToCart} />
-              ))}
-            </div>
-
-            {isSearching && displayProducts.length === 0 && (
+            {searchQuery.length >= 2 && (isSearching || displayProducts.length > 0) && (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden animate-pulse">
-                    <div className="aspect-square bg-gray-100 dark:bg-gray-700" />
-                    <div className="p-4 space-y-3">
-                      <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded w-16" />
-                      <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded w-full" />
-                      <div className="h-8 bg-gray-50 dark:bg-gray-700/50 rounded-lg" />
-                    </div>
-                  </div>
-                ))}
+                {isSearching && displayProducts.length === 0
+                  ? Array.from({ length: 10 }).map((_, i) => <ProductCardSkeleton key={`sk-${i}`} />)
+                  : displayProducts.map((product) => (
+                      <ProductCard key={product.id} product={product} onAddToCart={handleAddToCart} />
+                    ))}
               </div>
             )}
 
-            {!isSearching && displayProducts.length === 0 && (
-              <div className="text-center py-16">
-                <p className="text-neutral-500 dark:text-neutral-400 text-sm">
-                  {searchQuery.length >= 2 ? 'No results. Try "milk", "bread", or "rice".' : ''}
+            {searchQuery.length >= 2 && !isSearching && displayProducts.length === 0 && (
+              <div className="py-16 text-center">
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                  No results. Try &quot;milk&quot;, &quot;bread&quot;, or &quot;rice&quot;.
                 </p>
-                {searchQuery.length >= 2 && (
-                  <button onClick={() => setSearchQuery('')} className="mt-3 text-sm font-medium text-yellow-600 dark:text-yellow-400">
-                    Clear
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="mt-3 text-sm font-medium text-yellow-600 dark:text-yellow-400"
+                >
+                  Clear
+                </button>
               </div>
             )}
           </>
