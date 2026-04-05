@@ -71,7 +71,7 @@ const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { resolved, toggle } = useTheme();
 
-  const groceryPlaceholder = 'Search products to compare availability, prices, etc';
+  const groceryPlaceholder = 'Search products...';
   const electronicsPlaceholder = 'Search electronics...';
 
   return (
@@ -81,16 +81,17 @@ const Navbar: React.FC<NavbarProps> = ({
         <div className="flex flex-row items-center justify-between gap-3 w-full min-h-0">
           <button
             type="button"
-            className="flex items-center gap-1.5 sm:gap-2 shrink-0 cursor-pointer text-left min-w-0"
+            className="flex items-center shrink-0 cursor-pointer text-left min-w-0"
             onClick={() => window.location.reload()}
           >
-            <img
-              src={valyuxLogo}
-              alt="Valyux"
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg object-contain shrink-0"
-            />
-            <span className="text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight leading-none whitespace-nowrap">
-              Valyux
+            <span className="inline-flex items-center gap-1.5 sm:gap-2 text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight leading-none whitespace-nowrap">
+              <img
+                src={valyuxLogo}
+                alt=""
+                className="h-[2.22em] w-[2.22em] sm:h-[2.22em] sm:w-[2.22em] rounded-lg object-contain shrink-0"
+                aria-hidden
+              />
+              <span className="leading-none">Valyux</span>
             </span>
           </button>
 

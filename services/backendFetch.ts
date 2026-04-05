@@ -50,6 +50,6 @@ export async function fetchBackend(path: string, options: BackendFetchOptions = 
 
   // Most common case on Render free tier: backend is waking up / cold-starting.
   const msg = lastErr instanceof Error ? lastErr.message : 'Backend unreachable';
-  throw new Error(`Backend is waking up. Please try again in 10–15 seconds. (${msg})`);
+  throw new Error(`Please try again in 10–15 seconds.`);
 }
 
