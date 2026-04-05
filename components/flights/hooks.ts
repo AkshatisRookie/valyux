@@ -8,8 +8,7 @@ import type {
   FlightSortOption, TimeWindow, Airline, BookingPlatform,
 } from './types';
 import { getTimeWindow, DEFAULT_FLIGHT_FILTERS } from './types';
-
-const API_BASE = 'http://localhost:5000/api';
+import { fetchBackend } from '../../services/backendFetch';
 
 /* ================================================================== */
 /*  Fuzzy airport search (Fuse.js)                                     */
@@ -153,8 +152,10 @@ export function useFlightSearch(
       });
       if (params.returnDate) qs.set('returnDate', params.returnDate);
 
-      const res = await fetch(`${API_BASE}/flights/search?${qs}`, {
+      const res = await fetchBackend(`/api/flights/search?${qs}`, {
         signal: abortRef.current.signal,
+        timeoutMs: 45000,
+        retries: 1,
       });
       if (!res.ok) throw new Error('Backend error');
       const data = await res.json();

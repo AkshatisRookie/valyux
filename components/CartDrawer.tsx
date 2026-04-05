@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { CartItem, AIAnalysis, Platform, AppSection, ElectronicsCartItem } from '../types';
+import { CartItem, Platform, AppSection, ElectronicsCartItem } from '../types';
 import { usePincode } from '../context/PincodeContext';
-import { analyzeCartCheapest } from '../services/geminiService';
 import { getPlatformSearchUrl } from '../config/affiliateLinks';
 
 interface CartDrawerProps {
@@ -11,8 +10,6 @@ interface CartDrawerProps {
   onClose: () => void;
   onUpdateGroceryQuantity: (productId: string, platform: string, delta: number) => void;
   onUpdateElectronicsQuantity: (productId: string, retailer: string, delta: number) => void;
-  /** After Smart Cart: apply per-line deeplinks to cheapest platform */
-  onApplyGroceryOptimization?: (items: CartItem[]) => void;
 }
 
 const PLATFORM_ICONS: Record<Platform, string> = {
@@ -35,11 +32,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
   onClose,
   onUpdateGroceryQuantity,
   onUpdateElectronicsQuantity,
-  onApplyGroceryOptimization,
 }) => {
   const { openByPlatform } = usePincode();
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
   const [showCheckoutMessage, setShowCheckoutMessage] = useState(false);
 
   // Used to group "same-ish" product names in the cart UI (quantity variants stay separate).
@@ -108,16 +102,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
     return minPlatform ? { platform: minPlatform, total: minTotal } : null;
   }, [platformTotals, groceryItems, openByPlatform]);
 
-  const linePrice = (item: CartItem) => {
-    if (item.optimizedPlatform) {
-      return (
-        item.product.platformPrices.find((pp) => pp.platform === item.optimizedPlatform)?.price ??
-        item.product.platformPrices.find((pp) => pp.platform === item.selectedPlatform)?.price ??
-        0
-      );
-    }
-    return item.product.platformPrices.find((pp) => pp.platform === item.selectedPlatform)?.price || 0;
-  };
+  const linePrice = (item: CartItem) =>
+    item.product.platformPrices.find((pp) => pp.platform === item.selectedPlatform)?.price || 0;
 
   const groceryTotal = groceryItems.reduce((acc, item) => acc + linePrice(item) * item.quantity, 0);
 
@@ -141,33 +127,6 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
     ? cheapestPlatform.total + cheapestPlatformDeliveryFee
     : 0;
 
-  const handleAIAnalysis = async () => {
-    if (groceryItems.length === 0) return;
-    setIsAnalyzing(true);
-    try {
-      const result = await analyzeCartCheapest(groceryItems, openByPlatform);
-      setAnalysis(result);
-      const optimized: CartItem[] = groceryItems.map((item) => {
-        const openPrices = item.product.platformPrices.filter((pp) => openByPlatform[pp.platform] !== false);
-        const sorted = [...openPrices].sort((a, b) => a.price - b.price);
-        const best = sorted[0];
-        if (!best) return item;
-        const url = best.productUrl || getPlatformSearchUrl(best.platform, item.product.name);
-        return {
-          ...item,
-          selectedPlatform: best.platform,
-          optimizedBuyUrl: url,
-          optimizedPlatform: best.platform,
-        };
-      });
-      onApplyGroceryOptimization?.(optimized);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
   const handleGroceryCheckout = () => {
     if (groceryItems.length === 0) return;
     setShowCheckoutMessage(true);
@@ -175,7 +134,6 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
 
   const openLink = (item: CartItem) => {
     const url =
-      item.optimizedBuyUrl ||
       item.product.platformPrices.find((p) => p.platform === item.selectedPlatform)?.productUrl ||
       getPlatformSearchUrl(item.selectedPlatform, item.product.name);
     window.open(url, '_blank', 'noopener,noreferrer');
@@ -280,19 +238,10 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                               </h4>
                               <p className="mb-1 text-xs text-neutral-500 dark:text-neutral-400">
                                 {item.product.quantity} · Cart: {item.selectedPlatform}
-                                {item.optimizedPlatform && (
-                                  <span className="block text-indigo-600 dark:text-indigo-400 font-medium">
-                                    Smart link → {item.optimizedPlatform}
-                                  </span>
-                                )}
                               </p>
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <span className="text-sm font-bold text-neutral-900 dark:text-white">
-                                  ₹
-                                  {item.optimizedPlatform
-                                    ? item.product.platformPrices.find((p) => p.platform === item.optimizedPlatform)?.price ??
-                                      item.product.platformPrices.find((p) => p.platform === item.selectedPlatform)?.price
-                                    : item.product.platformPrices.find((p) => p.platform === item.selectedPlatform)?.price}
+                                  ₹{linePrice(item)}
                                 </span>
                                 <div className="flex items-center gap-2">
                                   <button
@@ -300,7 +249,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                                     onClick={() => openLink(item)}
                                     className="flex items-center gap-0.5 text-[10px] font-bold text-indigo-600 hover:underline dark:text-indigo-400"
                                   >
-                                    Open {item.optimizedPlatform || item.selectedPlatform}
+                                    Open {item.selectedPlatform}
                                     <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                     </svg>
@@ -331,78 +280,25 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                 })()
               )}
 
-              {groceryItems.length > 0 && !analysis && (
-                <div className="mt-4 space-y-2">
-                  <button
-                    type="button"
-                    onClick={handleAIAnalysis}
-                    disabled={isAnalyzing}
-                    className="w-full bg-indigo-600 dark:bg-indigo-500 text-white p-4 rounded-xl font-bold flex flex-col items-center justify-center gap-1 hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors disabled:opacity-50"
-                  >
-                    {isAnalyzing ? (
-                      <span className="flex items-center gap-2">
-                        <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        Calculating…
-                      </span>
-                    ) : (
-                      <>
-                        <span className="flex items-center gap-2">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                          </svg>
-                          Smart Cart · Optimize with AI
-                        </span>
-                        <span className="text-[11px] font-normal opacity-90">
-                          We&apos;ll attach the best deeplink per item and show next steps.
-                        </span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-
-              {analysis && (
-                <div className="mt-4 space-y-3">
-                  <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-4 dark:border-indigo-900/50 dark:bg-indigo-950/40">
-                    <div className="mb-3 flex items-center gap-2">
-                      <div className="rounded bg-indigo-600 p-1 text-white dark:bg-indigo-500">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0012 18.75c-1.03 0-1.959-.44-2.618-1.141l-.548-.547z" />
-                        </svg>
-                      </div>
-                      <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-300 uppercase">Valyux AI Analysis</h3>
+              {groceryItems.length > 0 && (
+                <div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-700 dark:bg-neutral-900/80">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-yellow-400/90 text-neutral-900">
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
                     </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-neutral-600 dark:text-neutral-400">Cheapest Platform ({analysis.cheapestPlatformTotal?.platform ?? '—'})</span>
-                        <span className="font-bold text-neutral-900 dark:text-white">₹{Number(analysis.cheapestPlatformTotal?.total ?? 0).toFixed(2)}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-sm font-bold text-neutral-900 dark:text-white">Smart Buy Cart</h3>
+                        <span className="rounded-full bg-neutral-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-neutral-600 dark:bg-neutral-700 dark:text-neutral-300">
+                          Soon
+                        </span>
                       </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-bold text-green-700 dark:text-green-400">Optimal Split Strategy</span>
-                        <span className="font-bold text-green-700 dark:text-green-400">₹{Number(analysis.optimalSplitTotal ?? 0).toFixed(2)}</span>
-                      </div>
-                      <div className="bg-green-600/10 dark:bg-green-500/10 text-green-700 dark:text-green-400 text-[10px] font-bold px-2 py-1 rounded inline-block">
-                        SAVE ₹{Number(analysis.savingsVsHighest ?? 0).toFixed(2)} vs MAX
-                      </div>
-                      <p className="text-xs text-indigo-800 dark:text-indigo-300 italic leading-relaxed mt-2 border-t border-indigo-100 dark:border-indigo-800/40 pt-2">
-                        &ldquo;{analysis.recommendation ?? ''}&rdquo;
+                      <p className="mt-1 text-xs leading-relaxed text-neutral-600 dark:text-neutral-400">
+                        One-tap optimized checkout and AI-powered cart splits are on the way. For now, use <strong>Open</strong> on each line to buy on the app you chose.
                       </p>
                     </div>
-                  </div>
-
-                  <div className="rounded-xl border border-amber-200 bg-amber-50/90 p-4 dark:border-amber-800/50 dark:bg-amber-950/30">
-                    <h4 className="text-xs font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wide mb-2">
-                      Smart Cart — do this next
-                    </h4>
-                    <ol className="list-decimal list-inside space-y-2 text-xs text-amber-950 dark:text-amber-100/90 leading-relaxed">
-                      <li>Each item below now uses a <strong>direct product link</strong> on the cheapest app we found (tap &quot;Open&quot;).</li>
-                      <li>Open <strong>one app at a time</strong> and add that line item to the cart there.</li>
-                      <li>Repeat for the next item — you may jump between Blinkit, Zepto, etc.</li>
-                      <li>Pay inside each partner app when you&apos;re ready (see checkout note below).</li>
-                    </ol>
                   </div>
                 </div>
               )}

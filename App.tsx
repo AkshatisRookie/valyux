@@ -14,6 +14,7 @@ import { searchGroupQuickCommerce } from './services/quickCommerceApi';
 import { reverseGeocodeLatLon } from './services/locationApi';
 import { useDebounce } from './utils/useDebounce';
 import GroceryPlatformLogos from './components/GroceryPlatformLogos';
+import GroceryCategoryNav from './components/GroceryCategoryNav';
 
 const AppContent: React.FC = () => {
   const { pincode, addressLabel, lat, lon, setDeliveryLocation, hasPincode, hasCoords, etaLoading, etaError, openByPlatform } = usePincode();
@@ -310,10 +311,6 @@ const AppContent: React.FC = () => {
     });
   };
 
-  const handleApplyGroceryOptimization = (items: CartItem[]) => {
-    setCart(items);
-  };
-
   const handleUpdateQuantity = (productId: string, platform: string, delta: number) => {
     setCart(prev =>
       prev
@@ -434,6 +431,10 @@ const AppContent: React.FC = () => {
 
             <GroceryPlatformLogos />
 
+            {searchQuery.trim().length === 0 && (
+              <GroceryCategoryNav onPickSearch={setSearchQuery} />
+            )}
+
             {searchQuery.length >= 2 && (
               <div className="mb-4">
                 <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-500">
@@ -476,7 +477,7 @@ const AppContent: React.FC = () => {
             {!isSearching && displayProducts.length === 0 && (
               <div className="text-center py-16">
                 <p className="text-neutral-500 dark:text-neutral-400 text-sm">
-                  {searchQuery.length >= 2 ? 'No results. Try "milk", "bread", or "rice".' : 'Search for products to compare prices.'}
+                  {searchQuery.length >= 2 ? 'No results. Try "milk", "bread", or "rice".' : ''}
                 </p>
                 {searchQuery.length >= 2 && (
                   <button onClick={() => setSearchQuery('')} className="mt-3 text-sm font-medium text-yellow-600 dark:text-yellow-400">
@@ -562,7 +563,6 @@ const AppContent: React.FC = () => {
           onClose={() => setIsCartOpen(false)}
           onUpdateGroceryQuantity={handleUpdateQuantity}
           onUpdateElectronicsQuantity={handleUpdateElectronicsQuantity}
-          onApplyGroceryOptimization={handleApplyGroceryOptimization}
         />
       )}
     </div>
