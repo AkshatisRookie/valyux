@@ -45,7 +45,7 @@ Covers: multi-platform merge, **1 L vs 500 ml split**, quantity formatting (`500
    Output is in the `dist/` folder.
 
 2. Deploy the `dist/` folder to any static host:
-   - **Vercel:** `npx vercel dist --prod` (or connect repo and set build command: `parcel build index.html`, output: `dist`)
+   - **Vercel:** This repo includes `vercel.json` so GitHub imports use **`npm run build`** and publish **`dist/`**. Use the **repository root** as the Vercel project root (not `backend/`). Alternatively: `npx vercel dist --prod`.
    - **Netlify:** Drag `dist` to [Netlify Drop](https://app.netlify.com/drop), or connect repo and set build command: `parcel build index.html`, publish directory: `dist`
    - **GitHub Pages / any host:** Upload the contents of `dist/` to your server.
 
