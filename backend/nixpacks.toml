@@ -1,5 +1,7 @@
 [variables]
 NIXPACKS_NODE_VERSION = "20"
+# Disable nixpacks cache mounts (prevents EBUSY on /app/node_modules/.cache)
+NIXPACKS_NO_CACHE = "1"
 # Avoid npm trying to delete /app/node_modules/.cache (nixpacks mounts a cache there)
 NPM_CONFIG_CACHE = "/tmp/npm-cache"
 
