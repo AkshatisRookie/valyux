@@ -1,5 +1,9 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
+  "variables": {
+    "NIXPACKS_NODE_VERSION": "20",
+    "NPM_CONFIG_CACHE": "/tmp/npm-cache"
+  },
   "build": {
     "builder": "NIXPACKS",
     "buildCommand": "npm ci && npm run build"
