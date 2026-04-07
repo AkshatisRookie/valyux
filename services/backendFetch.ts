@@ -15,7 +15,7 @@ function sleep(ms: number) {
 }
 
 /**
- * Fetch helper for Render-sleepy backend:
+ * Fetch helper for sleepy / cold-starting backends (e.g. free tiers):
  * - Retries on network errors + 502/503/504 with exponential-ish backoff
  * - Throws a friendly error if still failing after retries
  */
@@ -48,8 +48,8 @@ export async function fetchBackend(path: string, options: BackendFetchOptions = 
     }
   }
 
-  // Most common case on Render free tier: backend is waking up / cold-starting.
   const msg = lastErr instanceof Error ? lastErr.message : 'Backend unreachable';
-  throw new Error(`Please try again in 10–15 seconds.`);
+  void msg;
+  throw new Error(`Backend is starting up — please try again in 10–15 seconds.`);
 }
 

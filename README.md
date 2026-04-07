@@ -50,3 +50,27 @@ Covers: multi-platform merge, **1 L vs 500 ml split**, quantity formatting (`500
    - **GitHub Pages / any host:** Upload the contents of `dist/` to your server.
 
 Set `GEMINI_API_KEY` in your host’s environment variables if the app needs the API in production.
+
+### Deploy backend on Railway (recommended)
+
+This repo has a separate Node/Express backend in `backend/`. On Railway, create a **new service** from this repo and set:
+
+- **Root Directory**: `backend`
+- **Build command**: `npm ci && npm run build`
+- **Start command**: `npm start`
+
+Then set these Railway environment variables (minimum):
+
+- **`FRONTEND_URL`**: your deployed frontend origin (you can comma-separate multiple), e.g. `https://your-frontend-domain.com`
+- **`TRUST_PROXY`**: `1` (recommended on Railway so rate limits use real client IPs)
+- **`QUICKCOMMERCE_API_KEY`**: required for live grocery search + ETA
+
+Optional (only if you use these routes/features):
+
+- **`MAPBOX_ACCESS_TOKEN`**: required for address autocomplete + reverse geocode routes
+- **`JSON_BODY_LIMIT`**: defaults to `48kb`
+- **Rate limit knobs**: `RATE_LIMIT_GLOBAL_MAX`, `RATE_LIMIT_QC_PER_MIN`, etc.
+
+Finally, in the frontend host (or local `.env`), set:
+
+- **`VALYUX_API_URL`**: your Railway backend URL (example: `https://your-service.up.railway.app`)
