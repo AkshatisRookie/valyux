@@ -4,7 +4,7 @@ import { searchViaGemini } from '../../services/geminiSearchApi';
 import { bestPrice } from './types';
 import type { Product, Filters, SortOption } from './types';
 
-const API_BASE = process.env.VALYUX_API_URL || 'http://localhost:5000';
+const API_BASE = process.env.VALYUX_API_URL || 'http://localhost:8080';
 
 /* ================================================================== */
 /*  applyFiltersAndSort — shared logic for both backend + fallback     */

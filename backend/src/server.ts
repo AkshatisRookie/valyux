@@ -20,7 +20,7 @@ import {
 } from './middleware/security.js';
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '5000', 10);
+const PORT = parseInt(process.env.PORT || '8080', 10);
 const FRONTEND_URL_RAW = process.env.FRONTEND_URL || 'http://localhost:1234';
 let ALLOWED_ORIGINS = FRONTEND_URL_RAW.split(',')
   .map((s) => s.trim().replace(/\/$/, ''))

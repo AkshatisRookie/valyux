@@ -1,4 +1,4 @@
-const API_BASE = process.env.VALYUX_API_URL || 'http://localhost:5000';
+const API_BASE = process.env.VALYUX_API_URL || 'http://localhost:8080';
 
 type BackendFetchOptions = Omit<RequestInit, 'signal'> & {
   timeoutMs?: number;
