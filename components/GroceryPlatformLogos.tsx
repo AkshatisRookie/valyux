@@ -2,8 +2,12 @@ import React from 'react';
 import type { Platform } from '../types';
 import { usePincode } from '../context/PincodeContext';
 
+const bigBasketLogo = new URL('../assets/bigbasket.png', import.meta.url).href;
+
 const GROCERY_PLATFORMS: { platform: Platform; label: string; icon: string }[] = [
-  { platform: 'JioMart', label: 'JioMart', icon: 'https://www.google.com/s2/favicons?domain=jiomart.com&sz=128' },
+  // Display BigBasket branding for the JioMart slot in the "Comparing from" row.
+  // (Backend/platform type remains JioMart for ETA/open status wiring.)
+  { platform: 'JioMart', label: 'BigBasket', icon: bigBasketLogo },
   { platform: 'Blinkit', label: 'Blinkit', icon: 'https://www.google.com/s2/favicons?domain=blinkit.com&sz=128' },
   { platform: 'Instamart', label: 'Swiggy Instamart', icon: 'https://www.google.com/s2/favicons?domain=swiggy.com&sz=128' },
   { platform: 'Zepto', label: 'Zepto', icon: 'https://www.google.com/s2/favicons?domain=zepto.com&sz=128' },
@@ -36,7 +40,7 @@ const GroceryPlatformLogos: React.FC = () => {
           <div key={p.platform} className="flex w-[4.5rem] sm:w-[5rem] flex-col items-center gap-2 text-center">
             <div
               className="
-                flex h-14 w-14 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-full
+                flex h-14 w-14 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-full overflow-hidden
                 border-[3px] border-white dark:border-neutral-950 bg-white dark:bg-neutral-900
                 shadow-[0_4px_14px_rgba(0,0,0,0.08)] dark:shadow-[0_4px_14px_rgba(0,0,0,0.35)]
                 ring-1 ring-neutral-200/90 dark:ring-neutral-700
