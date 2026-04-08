@@ -434,6 +434,14 @@ const AppContent: React.FC = () => {
 
       <main
         className={`flex-1 max-w-6xl mx-auto w-full px-4 py-6 ${showFloatingCartBar ? 'pb-24 sm:pb-28' : ''}`}
+        onClick={(e) => {
+          // Mobile UX: tap outside the search box to dismiss keyboard after searching.
+          if (searchQuery.trim().length < 2) return;
+          const t = e.target as HTMLElement | null;
+          if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || (t as HTMLElement).isContentEditable)) return;
+          const active = document.activeElement as HTMLElement | null;
+          active?.blur?.();
+        }}
       >
         {activeSection === 'grocery' && (
           <>
@@ -486,10 +494,11 @@ const AppContent: React.FC = () => {
             <GroceryPlatformLogos />
 
             {searchQuery.trim().length === 0 && (
-              <>
-                <GroceryCategoryNav onPickSearch={setSearchQuery} />
-                <HowItWorks />
-              </>
+              <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <ProductCardSkeleton key={`idle-sk-${i}`} />
+                ))}
+              </div>
             )}
 
             {searchQuery.length >= 2 && (

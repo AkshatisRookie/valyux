@@ -145,6 +145,11 @@ const Navbar: React.FC<NavbarProps> = ({
               className="w-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full py-2.5 pl-11 pr-4 text-sm outline-none focus:ring-2 focus:ring-yellow-400/50 focus:border-yellow-400 placeholder:text-neutral-400"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  (e.currentTarget as HTMLInputElement).blur();
+                }
+              }}
             />
           </div>
         </div>
