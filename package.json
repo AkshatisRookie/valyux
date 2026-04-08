@@ -6,6 +6,14 @@
   "engines": {
     "node": ">=20.0.0"
   },
+  "targets": {
+    "default": {
+      "context": "browser",
+      "outputFormat": "global",
+      "includeNodeModules": true,
+      "distDir": "./dist"
+    }
+  },
   "scripts": {
     "dev": "parcel index.html",
     "build": "parcel build index.html",
