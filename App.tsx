@@ -36,7 +36,9 @@ const AppContent: React.FC = () => {
   const [electronicsCart, setElectronicsCart] = useState<ElectronicsCartItem[]>(() => loadElectronicsCart());
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(() => loadGrocerySearch());
+  const [searchDraft, setSearchDraft] = useState(() => loadGrocerySearch());
   const [electronicsSearchQuery, setElectronicsSearchQuery] = useState(() => loadElectronicsSearch());
+  const [electronicsSearchDraft, setElectronicsSearchDraft] = useState(() => loadElectronicsSearch());
   const [activeSection, setActiveSection] = useState<AppSection>(() => loadActiveSection());
 
   const [liveProducts, setLiveProducts] = useState<Product[]>([]);
@@ -65,6 +67,16 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     saveElectronicsSearch(electronicsSearchQuery);
   }, [electronicsSearchQuery]);
+
+  const submitGrocerySearch = () => {
+    const next = searchDraft.trim();
+    setSearchQuery(next);
+  };
+
+  const submitElectronicsSearch = () => {
+    const next = electronicsSearchDraft.trim();
+    setElectronicsSearchQuery(next);
+  };
 
   useEffect(() => {
     saveActiveSection(activeSection);
@@ -426,8 +438,22 @@ const AppContent: React.FC = () => {
       <Navbar
         cartCount={cartCount}
         onCartClick={() => setIsCartOpen(true)}
-        searchQuery={activeSection === 'grocery' ? searchQuery : electronicsSearchQuery}
-        onSearchChange={activeSection === 'grocery' ? setSearchQuery : setElectronicsSearchQuery}
+        searchQuery={activeSection === 'grocery' ? searchDraft : electronicsSearchDraft}
+        onSearchChange={activeSection === 'grocery' ? setSearchDraft : setElectronicsSearchDraft}
+        onSearchSubmit={activeSection === 'grocery' ? submitGrocerySearch : submitElectronicsSearch}
+        onLogoClick={() => {
+          setIsCartOpen(false);
+          setActiveSection('grocery');
+          setSearchDraft('');
+          setSearchQuery('');
+          setElectronicsSearchDraft('');
+          setElectronicsSearchQuery('');
+          try {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          } catch {
+            window.scrollTo(0, 0);
+          }
+        }}
         activeSection={activeSection}
         onSectionChange={setActiveSection}
       />
@@ -494,11 +520,10 @@ const AppContent: React.FC = () => {
             <GroceryPlatformLogos />
 
             {searchQuery.trim().length === 0 && (
-              <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {Array.from({ length: 10 }).map((_, i) => (
-                  <ProductCardSkeleton key={`idle-sk-${i}`} />
-                ))}
-              </div>
+              <>
+                <GroceryCategoryNav onPickSearch={(q) => { setSearchDraft(q); setSearchQuery(q); }} />
+                <HowItWorks />
+              </>
             )}
 
             {searchQuery.length >= 2 && (
@@ -536,7 +561,7 @@ const AppContent: React.FC = () => {
                 </p>
                 <button
                   type="button"
-                  onClick={() => setSearchQuery('')}
+                  onClick={() => { setSearchDraft(''); setSearchQuery(''); }}
                   className="mt-3 text-sm font-medium text-yellow-600 dark:text-yellow-400"
                 >
                   Clear

@@ -8,9 +8,30 @@ const router = Router();
 const BASE = (process.env.QUICKCOMMERCE_API_BASE || 'https://api.quickcommerceapi.com').replace(/\/$/, '');
 const API_KEY = process.env.QUICKCOMMERCE_API_KEY || '';
 
-/** Search: 5 min. ETA: 24h for same coordinates. */
-const searchCache = new NodeCache({ stdTTL: 300, checkperiod: 60 });
-const etaCache = new NodeCache({ stdTTL: 86400, checkperiod: 600 });
+function clampInt(n: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, Math.floor(n)));
+}
+
+function envTtlSeconds(name: string, fallback: number): number {
+  const raw = process.env[name];
+  const n = Number(raw);
+  if (!raw || !Number.isFinite(n)) return fallback;
+  return clampInt(n, 5, 7 * 24 * 60 * 60);
+}
+
+/**
+ * Cache TTLs (seconds):
+ * - `CACHE_TTL`: global default (used for group search unless overridden)
+ * - `QC_SEARCH_CACHE_TTL`: override for /v1/groupsearch responses
+ * - `QC_ETA_CACHE_TTL`: override for /v1/groupeta responses
+ */
+const DEFAULT_TTL = envTtlSeconds('CACHE_TTL', 300);
+const SEARCH_TTL = envTtlSeconds('QC_SEARCH_CACHE_TTL', DEFAULT_TTL);
+const ETA_TTL = envTtlSeconds('QC_ETA_CACHE_TTL', 86400);
+
+/** Search + ETA caches. */
+const searchCache = new NodeCache({ stdTTL: SEARCH_TTL, checkperiod: clampInt(Math.max(10, Math.round(SEARCH_TTL / 5)), 10, 600) });
+const etaCache = new NodeCache({ stdTTL: ETA_TTL, checkperiod: clampInt(Math.max(30, Math.round(ETA_TTL / 10)), 30, 1800) });
 
 function requireKey(res: Response): boolean {
   if (!API_KEY) {

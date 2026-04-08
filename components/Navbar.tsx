@@ -9,6 +9,8 @@ interface NavbarProps {
   onCartClick: () => void;
   searchQuery: string;
   onSearchChange: (val: string) => void;
+  onSearchSubmit?: () => void;
+  onLogoClick?: () => void;
   activeSection: AppSection;
   onSectionChange: (section: AppSection) => void;
 }
@@ -67,7 +69,14 @@ const SECTIONS: {
 /* ------------------------------------------------------------------ */
 
 const Navbar: React.FC<NavbarProps> = ({
-  cartCount, onCartClick, searchQuery, onSearchChange, activeSection, onSectionChange,
+  cartCount,
+  onCartClick,
+  searchQuery,
+  onSearchChange,
+  onSearchSubmit,
+  onLogoClick,
+  activeSection,
+  onSectionChange,
 }) => {
   const { resolved, toggle } = useTheme();
 
@@ -82,7 +91,7 @@ const Navbar: React.FC<NavbarProps> = ({
           <button
             type="button"
             className="flex items-center shrink-0 cursor-pointer text-left min-w-0"
-            onClick={() => window.location.reload()}
+            onClick={() => onLogoClick?.()}
           >
             <span className="inline-flex items-center gap-1.5 sm:gap-2 text-lg sm:text-xl font-bold text-neutral-900 dark:text-white tracking-tight leading-none whitespace-nowrap">
               <img
@@ -147,6 +156,7 @@ const Navbar: React.FC<NavbarProps> = ({
               onChange={(e) => onSearchChange(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
+                  onSearchSubmit?.();
                   (e.currentTarget as HTMLInputElement).blur();
                 }
               }}
