@@ -17,14 +17,18 @@ declare global {
 export function gaTrackPageView(pagePath: string, pageTitle?: string): void {
   if (typeof window === 'undefined' || !getGaMeasurementId()) return;
   const title = pageTitle || (typeof document !== 'undefined' ? document.title : '');
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const page_location = origin && pagePath ? `${origin}${pagePath.startsWith('/') ? '' : '/'}${pagePath}` : undefined;
   const run = (): boolean => {
     if (typeof window.gtag !== 'function') return false;
     window.gtag('event', 'page_view', {
       page_path: pagePath,
       page_title: title,
+      ...(page_location ? { page_location } : {}),
     });
     return true;
   };
   if (run()) return;
   window.setTimeout(() => void run(), 0);
+  window.setTimeout(() => void run(), 100);
 }

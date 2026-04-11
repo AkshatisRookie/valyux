@@ -5,7 +5,8 @@ let gtagBootstrapStarted = false;
 
 /**
  * Loads GA4 (gtag.js) when `GA_MEASUREMENT_ID` is set at build time.
- * Uses `send_page_view: false` so `AppContent` can emit consistent virtual paths per section.
+ * Default `send_page_view` stays on so the first hit reaches GA once gtag.js loads (helps Realtime).
+ * Section changes still send extra `page_view` events from `gaTrackPageView`.
  */
 const GoogleAnalytics: React.FC = () => {
   useEffect(() => {
@@ -18,7 +19,7 @@ const GoogleAnalytics: React.FC = () => {
       window.dataLayer!.push(args);
     };
     window.gtag('js', new Date());
-    window.gtag('config', id, { send_page_view: false });
+    window.gtag('config', id);
 
     const existing = document.querySelector(`script[src*="googletagmanager.com/gtag/js"]`);
     if (existing) return;
