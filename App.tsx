@@ -29,6 +29,8 @@ import GroceryPlatformLogos from './components/GroceryPlatformLogos';
 import GroceryCategoryNav from './components/GroceryCategoryNav';
 import HowItWorks from './components/HowItWorks';
 import FloatingCartBar from './components/FloatingCartBar';
+import GoogleAnalytics from './components/GoogleAnalytics';
+import { gaTrackPageView, getGaMeasurementId } from './utils/gtag';
 
 const AppContent: React.FC = () => {
   const { pincode, addressLabel, lat, lon, setDeliveryLocation, hasPincode, hasCoords, etaLoading, etaError, openByPlatform } = usePincode();
@@ -81,6 +83,17 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     saveActiveSection(activeSection);
   }, [activeSection]);
+
+  useEffect(() => {
+    if (!getGaMeasurementId()) return;
+    const titles: Record<AppSection, string> = {
+      grocery: 'Grocery',
+      electronics: 'Electronics',
+      flights: 'Flights',
+    };
+    gaTrackPageView(`/${activeSection}`, `Valyux · ${titles[activeSection]}`);
+  }, [activeSection]);
+
   const progressTimerRef = useRef<number | null>(null);
   const SIMILAR_NAME_THRESHOLD = 0.72;
   /** When both rows have MRP from platforms, require match within this (₹) before merging */
@@ -662,6 +675,7 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => (
   <ThemeProvider>
     <PincodeProvider>
+      <GoogleAnalytics />
       <AppContent />
     </PincodeProvider>
   </ThemeProvider>
