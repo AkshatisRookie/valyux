@@ -2,7 +2,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import type { Application, NextFunction, Request, Response } from 'express';
 
-/** Behind a reverse proxy (Railway/Render/Fly/nginx): set TRUST_PROXY=1 so rate limits use client IP from X-Forwarded-For. */
+/** Behind a reverse proxy (Railway, Render, Fly, nginx): set TRUST_PROXY=1 so rate limits use client IP from X-Forwarded-For. */
 export function configureTrustProxy(app: Application): void {
   const t = process.env.TRUST_PROXY?.trim();
   if (t === '1' || t === 'true') {

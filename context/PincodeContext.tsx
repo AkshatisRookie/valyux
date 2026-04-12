@@ -25,6 +25,13 @@ interface PincodeContextValue {
 
 const PincodeContext = createContext<PincodeContextValue | null>(null);
 
+function isAbortError(e: unknown): boolean {
+  return (
+    (e instanceof DOMException && e.name === 'AbortError') ||
+    (e instanceof Error && e.name === 'AbortError')
+  );
+}
+
 export function PincodeProvider({ children }: { children: React.ReactNode }) {
   const [location, setLocationState] = useState<StoredLocation>(() => getStoredLocation());
   const [etaByPlatform, setEtaByPlatform] = useState<Partial<Record<Platform, string>>>({});
@@ -53,10 +60,9 @@ export function PincodeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!/^\d{6}$/.test(location.pincode)) return;
     if (location.lat && location.lon) return;
-    let cancelled = false;
-    geocodePincode(location.pincode)
+    const ac = new AbortController();
+    geocodePincode(location.pincode, ac.signal)
       .then((g) => {
-        if (cancelled) return;
         setLocationState((prev) => {
           if (prev.pincode !== location.pincode) return prev;
           const next: StoredLocation = {
@@ -68,38 +74,34 @@ export function PincodeProvider({ children }: { children: React.ReactNode }) {
           return next;
         });
       })
-      .catch(() => {
+      .catch((e) => {
+        if (ac.signal.aborted || isAbortError(e)) return;
         /* non-fatal: user can re-open location */
       });
-    return () => {
-      cancelled = true;
-    };
+    return () => ac.abort();
   }, [location.pincode, location.lat, location.lon]);
 
   useEffect(() => {
     if (!/^\d{6}$/.test(location.pincode)) return;
     if (!location.lat || !location.lon) return;
-    let cancelled = false;
+    const ac = new AbortController();
     setEtaLoading(true);
     setEtaError(null);
-    fetchGroupEta(location.lat, location.lon, location.pincode)
+    fetchGroupEta(location.lat, location.lon, location.pincode, ac.signal)
       .then(({ etaByPlatform: eta, openByPlatform: open }) => {
-        if (cancelled) return;
         setEtaByPlatform(eta as Partial<Record<Platform, string>>);
         setOpenByPlatform(open as Partial<Record<Platform, boolean>>);
       })
       .catch((e) => {
-        if (cancelled) return;
+        if (ac.signal.aborted || isAbortError(e)) return;
         setEtaError(e instanceof Error ? e.message : 'Could not load delivery times');
         setEtaByPlatform({});
         setOpenByPlatform({});
       })
       .finally(() => {
-        if (!cancelled) setEtaLoading(false);
+        if (!ac.signal.aborted) setEtaLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
+    return () => ac.abort();
   }, [location.pincode, location.lat, location.lon]);
 
   const hasCoords = Boolean(location.lat && location.lon && !Number.isNaN(Number(location.lat)) && !Number.isNaN(Number(location.lon)));

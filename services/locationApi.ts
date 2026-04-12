@@ -38,13 +38,17 @@ export async function fetchAddressSuggestions(query: string): Promise<AddressSug
 /**
  * Reverse geocode lat/lon to {pincode, addressLabel} via backend → Mapbox Geocoding.
  */
-export async function reverseGeocodeLatLon(lat: number, lon: number): Promise<ReverseGeocodeResult> {
+export async function reverseGeocodeLatLon(
+  lat: number,
+  lon: number,
+  signal?: AbortSignal
+): Promise<ReverseGeocodeResult> {
   const params = new URLSearchParams({
     lat: String(lat),
     lon: String(lon),
   });
 
-  const res = await fetchBackend(`/api/location/reverse?${params}`, { timeoutMs: 20000, retries: 2 });
+  const res = await fetchBackend(`/api/location/reverse?${params}`, { timeoutMs: 20000, retries: 2, signal });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

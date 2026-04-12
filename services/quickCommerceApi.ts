@@ -41,14 +41,15 @@ export interface GroupEtaResponse {
 export async function fetchGroupEta(
   lat: string,
   lon: string,
-  pincode: string
+  pincode: string,
+  signal?: AbortSignal
 ): Promise<GroupEtaResponse> {
   const params = new URLSearchParams({
     lat: lat.trim(),
     lon: lon.trim(),
     pincode: pincode.trim(),
   });
-  const res = await fetchBackend(`/api/qc/groupeta?${params}`, { timeoutMs: 30000, retries: 2 });
+  const res = await fetchBackend(`/api/qc/groupeta?${params}`, { timeoutMs: 30000, retries: 2, signal });
   if (!res.ok) {
     // ETA is an enhancement for labels/filtering. Keep search usable on upstream hiccups.
     if (res.status >= 500) {

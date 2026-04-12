@@ -53,6 +53,9 @@ const AppContent: React.FC = () => {
 
   const debouncedQuery = useDebounce(searchQuery, 600);
   const abortRef = useRef<AbortController | null>(null);
+  const geoReverseAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => geoReverseAbortRef.current?.abort(), []);
 
   useEffect(() => {
     saveGroceryCart(cart);
@@ -183,13 +186,19 @@ const AppContent: React.FC = () => {
       return;
     }
 
+    geoReverseAbortRef.current?.abort();
+    geoReverseAbortRef.current = new AbortController();
+    const signal = geoReverseAbortRef.current.signal;
+
     setGeoLoading(true);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
+          if (signal.aborted) return;
           const latNum = pos.coords.latitude;
           const lonNum = pos.coords.longitude;
-          const geo = await reverseGeocodeLatLon(latNum, lonNum);
+          const geo = await reverseGeocodeLatLon(latNum, lonNum, signal);
+          if (signal.aborted) return;
           setDeliveryLocation({
             pincode: geo.pincode,
             addressLabel: geo.addressLabel || `Pincode ${geo.pincode}`,
@@ -197,9 +206,13 @@ const AppContent: React.FC = () => {
             lon: geo.lon,
           });
         } catch (err) {
+          const aborted =
+            (err instanceof DOMException && err.name === 'AbortError') ||
+            (err instanceof Error && err.name === 'AbortError');
+          if (aborted) return;
           setGeoError(err instanceof Error ? err.message : 'Could not fetch your current location');
         } finally {
-          setGeoLoading(false);
+          if (!signal.aborted) setGeoLoading(false);
         }
       },
       (e) => {

@@ -1,6 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { reverseGeocodeLatLon } from '../services/locationApi';
 import { geocodePincode } from '../services/pincodeGeocodeApi';
+
+function isAbortError(e: unknown): boolean {
+  return (
+    (e instanceof DOMException && e.name === 'AbortError') ||
+    (e instanceof Error && e.name === 'AbortError')
+  );
+}
 
 const STORAGE_KEY = 'valyux-location';
 const LEGACY_PINCODE_KEY = 'valyux-pincode';
@@ -70,6 +77,16 @@ export const PincodeModal: React.FC<PincodeModalProps> = ({ onConfirm }) => {
   const [error, setError] = useState('');
   const [manualLoading, setManualLoading] = useState(false);
 
+  const locateAbortRef = useRef<AbortController | null>(null);
+
+  const startLocateRequest = () => {
+    locateAbortRef.current?.abort();
+    locateAbortRef.current = new AbortController();
+    return locateAbortRef.current.signal;
+  };
+
+  useEffect(() => () => locateAbortRef.current?.abort(), []);
+
   const requestCurrentLocation = () => {
     setGeoError(null);
 
@@ -78,14 +95,17 @@ export const PincodeModal: React.FC<PincodeModalProps> = ({ onConfirm }) => {
       return;
     }
 
+    const signal = startLocateRequest();
     setGeoLoading(true);
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
+          if (signal.aborted) return;
           const lat = pos.coords.latitude;
           const lon = pos.coords.longitude;
-          const geo = await reverseGeocodeLatLon(lat, lon);
+          const geo = await reverseGeocodeLatLon(lat, lon, signal);
+          if (signal.aborted) return;
 
           const loc: StoredLocation = {
             pincode: geo.pincode,
@@ -97,9 +117,10 @@ export const PincodeModal: React.FC<PincodeModalProps> = ({ onConfirm }) => {
           setStoredLocation(loc);
           onConfirm(loc);
         } catch (err) {
+          if (isAbortError(err)) return;
           setGeoError(err instanceof Error ? err.message : 'Could not fetch your current location');
         } finally {
-          setGeoLoading(false);
+          if (!signal.aborted) setGeoLoading(false);
         }
       },
       (e) => {
@@ -126,9 +147,11 @@ export const PincodeModal: React.FC<PincodeModalProps> = ({ onConfirm }) => {
       return;
     }
     setError('');
+    const signal = startLocateRequest();
     setManualLoading(true);
     try {
-      const geo = await geocodePincode(trimmed);
+      const geo = await geocodePincode(trimmed, signal);
+      if (signal.aborted) return;
       const loc: StoredLocation = {
         pincode: trimmed,
         addressLabel: geo.label || `Pincode ${trimmed}`,
@@ -138,9 +161,10 @@ export const PincodeModal: React.FC<PincodeModalProps> = ({ onConfirm }) => {
       setStoredLocation(loc);
       onConfirm(loc);
     } catch (err) {
+      if (isAbortError(err)) return;
       setError(err instanceof Error ? err.message : 'Could not find this pincode on the map');
     } finally {
-      setManualLoading(false);
+      if (!signal.aborted) setManualLoading(false);
     }
   };
 
