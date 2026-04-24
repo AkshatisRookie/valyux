@@ -22,7 +22,7 @@ function normalizeQcPlatforms(raw: string): string {
       case 'swiggy':
         return 'Swiggy';
       case 'bigbasket':
-        return 'BigBasket';
+        return 'JioMart';
       case 'dmart':
         return 'DMart';
       case 'jiomart':
@@ -47,7 +47,7 @@ const API_TO_APP: Record<string, Platform | null> = {
   zepto: 'Zepto',
   swiggy: 'Instamart',
   'swiggy instamart': 'Instamart',
-  bigbasket: null,
+  bigbasket: 'JioMart',
   jiomart: 'JioMart',
   dmart: null,
   minutes: null,
@@ -59,7 +59,7 @@ export function mapApiPlatformName(raw: string): Platform | null {
   if (k.includes('blink')) return 'Blinkit';
   if (k.includes('zepto')) return 'Zepto';
   if (k.includes('swiggy') || k.includes('instamart')) return 'Instamart';
-  if (k.includes('big') && k.includes('basket')) return null;
+  if (k.includes('big') && k.includes('basket')) return 'JioMart';
   if (k.includes('jiomart') || k.includes('jio mart')) return 'JioMart';
   return null;
 }

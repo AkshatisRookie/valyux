@@ -2,12 +2,12 @@ import React from 'react';
 import type { Platform } from '../types';
 import { usePincode } from '../context/PincodeContext';
 
-const bigBasketLogo = new URL('../assets/bigbasket.png', import.meta.url).href;
-
 const GROCERY_PLATFORMS: { platform: Platform; label: string; icon: string }[] = [
-  // Display BigBasket branding for the JioMart slot in the "Comparing from" row.
-  // (Backend/platform type remains JioMart for ETA/open status wiring.)
-  { platform: 'JioMart', label: 'BigBasket', icon: bigBasketLogo },
+  {
+    platform: 'JioMart',
+    label: 'JioMart',
+    icon: 'https://www.google.com/s2/favicons?domain=jiomart.com&sz=128',
+  },
   { platform: 'Blinkit', label: 'Blinkit', icon: 'https://www.google.com/s2/favicons?domain=blinkit.com&sz=128' },
   { platform: 'Instamart', label: 'Swiggy Instamart', icon: 'https://www.google.com/s2/favicons?domain=swiggy.com&sz=128' },
   { platform: 'Zepto', label: 'Zepto', icon: 'https://www.google.com/s2/favicons?domain=zepto.com&sz=128' },
