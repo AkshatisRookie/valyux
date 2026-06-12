@@ -67,7 +67,9 @@ Then set these Railway environment variables (minimum):
 
 Optional (only if you use these routes/features):
 
-- **`MAPBOX_ACCESS_TOKEN`**: required for address autocomplete + reverse geocode routes
+- **`MAPBOX_ACCESS_TOKEN`**: preferred for address autocomplete + reverse geocode (Mapbox Geocoding)
+- **`LOCATIONIQ_API_KEY`**: optional fallback if Mapbox is unreachable; used alone when Mapbox is not set
+- **`GEOCODING_PROVIDER`**: optional `mapbox` or `locationiq` to force a single provider
 - **`JSON_BODY_LIMIT`**: defaults to `48kb`
 - **Rate limit knobs**: `RATE_LIMIT_GLOBAL_MAX`, `RATE_LIMIT_QC_PER_MIN`, etc.
 
