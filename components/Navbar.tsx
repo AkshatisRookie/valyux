@@ -1,7 +1,6 @@
 import React from 'react';
-import { AppSection } from '../types';
-import { FEATURE_ELECTRONICS_PAGE, FEATURE_FLIGHTS_PAGE } from '../config/features';
 import { useTheme } from './ThemeProvider';
+
 const valyuxLogo = new URL('../assets/valyux-icon.svg', import.meta.url).href;
 
 interface NavbarProps {
@@ -11,62 +10,7 @@ interface NavbarProps {
   onSearchChange: (val: string) => void;
   onSearchSubmit?: () => void;
   onLogoClick?: () => void;
-  activeSection: AppSection;
-  onSectionChange: (section: AppSection) => void;
 }
-
-/* ------------------------------------------------------------------ */
-/*  Section config — Grocery live; Electronics & Flights = coming soon */
-/* ------------------------------------------------------------------ */
-
-const SECTIONS: {
-  id: AppSection;
-  label: string;
-  icon: React.ReactNode;
-  activeColor: string;
-  activeColorDark: string;
-}[] = [
-  {
-    id: 'grocery',
-    label: 'Grocery',
-    activeColor: 'border-yellow-500 text-yellow-600 dark:text-yellow-400',
-    activeColorDark: 'dark:border-yellow-500',
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
-      </svg>
-    ),
-  },
-  {
-    id: 'electronics',
-    label: 'Electronics',
-    activeColor: 'border-yellow-500 text-yellow-600 dark:text-yellow-400',
-    activeColorDark: 'dark:border-yellow-500',
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
-    ),
-  },
-  {
-    id: 'flights',
-    label: 'Flights',
-    activeColor: 'border-sky-600 text-sky-600',
-    activeColorDark: 'dark:border-sky-400 dark:text-sky-400',
-    icon: (
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-      </svg>
-    ),
-  },
-];
-
-/* ------------------------------------------------------------------ */
-/*  Component                                                          */
-/* ------------------------------------------------------------------ */
 
 const Navbar: React.FC<NavbarProps> = ({
   cartCount,
@@ -75,18 +19,12 @@ const Navbar: React.FC<NavbarProps> = ({
   onSearchChange,
   onSearchSubmit,
   onLogoClick,
-  activeSection,
-  onSectionChange,
 }) => {
   const { resolved, toggle } = useTheme();
-
-  const groceryPlaceholder = 'Search products...';
-  const electronicsPlaceholder = 'Search electronics...';
 
   return (
     <nav className="sticky top-0 z-40 bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800">
       <div className="max-w-6xl mx-auto px-4 pt-2 pb-2 sm:pt-2.5 sm:pb-2 flex flex-col gap-2">
-        {/* Row 1: Valyux brand | theme + cart */}
         <div className="flex flex-row items-center justify-between gap-3 w-full min-h-0">
           <button
             type="button"
@@ -140,7 +78,6 @@ const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Row 2: search — full width below */}
         <div className="w-full min-w-0">
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
@@ -150,7 +87,7 @@ const Navbar: React.FC<NavbarProps> = ({
             </span>
             <input
               type="text"
-              placeholder={activeSection === 'grocery' ? groceryPlaceholder : electronicsPlaceholder}
+              placeholder="Search products..."
               className="w-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full py-2.5 pl-11 pr-4 text-sm outline-none focus:ring-2 focus:ring-yellow-400/50 focus:border-yellow-400 placeholder:text-neutral-400"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
@@ -162,35 +99,6 @@ const Navbar: React.FC<NavbarProps> = ({
               }}
             />
           </div>
-        </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-4 border-t border-neutral-100 dark:border-neutral-800">
-        <div className="flex gap-0 overflow-x-auto no-scrollbar">
-          {SECTIONS.map(section => {
-            const isActive = activeSection === section.id;
-            const showSoonBadge =
-              (section.id === 'electronics' && !FEATURE_ELECTRONICS_PAGE) ||
-              (section.id === 'flights' && !FEATURE_FLIGHTS_PAGE);
-
-            return (
-              <button
-                key={section.id}
-                type="button"
-                onClick={() => onSectionChange(section.id)}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 -mb-px shrink-0
-                  ${isActive ? `${section.activeColor} ${section.activeColorDark}` : 'border-transparent text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'}`}
-              >
-                {section.icon}
-                <span>{section.label}</span>
-                {showSoonBadge && (
-                  <span className="ml-0.5 rounded-full bg-neutral-200 dark:bg-neutral-700 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-600 dark:text-neutral-400">
-                    Soon
-                  </span>
-                )}
-              </button>
-            );
-          })}
         </div>
       </div>
     </nav>

@@ -1,18 +1,12 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import geminiSearchRouter from './routes/geminiSearch.js';
-import flightsRouter from './routes/flights.js';
-import grocerySearchRouter from './routes/grocerySearch.js';
 import locationRouter from './routes/location.js';
 import quickcommerceRouter from './routes/quickcommerce.js';
 import { sendApiIndex } from './apiIndex.js';
 import {
   configureTrustProxy,
-  flightsLimiter,
-  geminiLimiter,
   globalApiLimiter,
-  grocerySearchLimiter,
   locationLimiter,
   qcLimiter,
   securityHeaders,
@@ -48,19 +42,13 @@ app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '48kb' }));
 
 app.use('/api', globalApiLimiter);
 app.use('/api/qc', qcLimiter);
-app.use('/api/grocery', grocerySearchLimiter);
 app.use('/api/location', locationLimiter);
-app.use('/api/gemini', geminiLimiter);
-app.use('/api/flights', flightsLimiter);
 
 app.get('/api', sendApiIndex);
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, ts: new Date().toISOString() });
 });
 
-app.use('/api', geminiSearchRouter);
-app.use('/api', flightsRouter);
-app.use('/api', grocerySearchRouter);
 app.use('/api', locationRouter);
 app.use('/api', quickcommerceRouter);
 

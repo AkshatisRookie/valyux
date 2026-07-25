@@ -17,9 +17,8 @@ View your app in AI Studio: https://ai.studio/apps/drive/1durYjZBaqNv5ZohTxeMF8u
    npm install
    ```
 2. Create a `.env` file in the project root (copy from `env.example`):
-   - **Gemini (optional):** `GEMINI_API_KEY=your_api_key_here`
-   - **QcomPl (grocery live search):** For live Blinkit & Swiggy Instamart prices, set `QCOMPL_API_URL` and `QCOMPL_API_KEY` in the backend `.env`. Start the backend with `cd backend && npm run dev`.
-   - **Address search (Uber-style):** The location picker calls `GET /api/location/autocomplete` on the same backend (OpenStreetMap Nominatim, India). Run the backend and set `VALYUX_API_URL` in the frontend `.env` so autocomplete works.
+   - **`VALYUX_API_URL`**: point at the backend (local: `http://localhost:8080`)
+   - **Backend** (`backend/.env`): set `QUICKCOMMERCE_API_KEY`, `FRONTEND_URL`, and geocoding keys (`MAPBOX_ACCESS_TOKEN` and/or `LOCATIONIQ_API_KEY`)
 3. Run the app:
    ```bash
    npm run dev
@@ -49,7 +48,7 @@ Covers: multi-platform merge, **1 L vs 500 ml split**, quantity formatting (`500
    - **Netlify:** Drag `dist` to [Netlify Drop](https://app.netlify.com/drop), or connect repo and set build command: `parcel build index.html`, publish directory: `dist`
    - **GitHub Pages / any host:** Upload the contents of `dist/` to your server.
 
-Set `GEMINI_API_KEY` in your host’s environment variables if the app needs the API in production.
+Set `VALYUX_API_URL` in your frontend host’s environment variables for production.
 
 ### Deploy backend on Railway (recommended)
 

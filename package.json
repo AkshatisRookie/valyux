@@ -21,10 +21,7 @@
     "start": "cd backend && npm start"
   },
   "dependencies": {
-    "@google/genai": "^1.40.0",
-    "@mapbox/search-js-react": "^1.5.1",
     "@vercel/analytics": "^2.0.1",
-    "fuse.js": "^7.1.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },

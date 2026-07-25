@@ -2,29 +2,14 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Navbar from './components/Navbar';
 import ProductCard, { ProductCardSkeleton } from './components/ProductCard';
 import CartDrawer from './components/CartDrawer';
-import ElectronicsPage from './components/electronics/ElectronicsPage';
-import FlightsPage from './components/flights/FlightsPage';
-import ComingSoonPlaceholder from './components/ComingSoonPlaceholder';
 import { ThemeProvider } from './components/ThemeProvider';
-import { FEATURE_ELECTRONICS_PAGE, FEATURE_FLIGHTS_PAGE } from './config/features';
 import { PincodeProvider, usePincode } from './context/PincodeContext';
 import { PincodeModal } from './components/PincodeModal';
-import { Product, Platform, CartItem, AppSection, ElectronicsCartItem } from './types';
+import { Product, Platform, CartItem } from './types';
 import { searchGroupQuickCommerce } from './services/quickCommerceApi';
 import { reverseGeocodeLatLon } from './services/locationApi';
 import { useDebounce } from './utils/useDebounce';
-import {
-  loadActiveSection,
-  loadElectronicsCart,
-  loadElectronicsSearch,
-  loadGroceryCart,
-  loadGrocerySearch,
-  saveActiveSection,
-  saveElectronicsCart,
-  saveElectronicsSearch,
-  saveGroceryCart,
-  saveGrocerySearch,
-} from './utils/appPersistence';
+import { loadGroceryCart, loadGrocerySearch, saveGroceryCart, saveGrocerySearch } from './utils/appPersistence';
 import GroceryPlatformLogos from './components/GroceryPlatformLogos';
 import GroceryCategoryNav from './components/GroceryCategoryNav';
 import HowItWorks from './components/HowItWorks';
@@ -35,13 +20,9 @@ import { gaTrackPageView, getGaMeasurementId } from './utils/gtag';
 const AppContent: React.FC = () => {
   const { pincode, addressLabel, lat, lon, setDeliveryLocation, hasPincode, hasCoords, etaLoading, etaError, openByPlatform } = usePincode();
   const [cart, setCart] = useState<CartItem[]>(() => loadGroceryCart());
-  const [electronicsCart, setElectronicsCart] = useState<ElectronicsCartItem[]>(() => loadElectronicsCart());
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState(() => loadGrocerySearch());
   const [searchDraft, setSearchDraft] = useState(() => loadGrocerySearch());
-  const [electronicsSearchQuery, setElectronicsSearchQuery] = useState(() => loadElectronicsSearch());
-  const [electronicsSearchDraft, setElectronicsSearchDraft] = useState(() => loadElectronicsSearch());
-  const [activeSection, setActiveSection] = useState<AppSection>(() => loadActiveSection());
 
   const [liveProducts, setLiveProducts] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -62,52 +43,27 @@ const AppContent: React.FC = () => {
   }, [cart]);
 
   useEffect(() => {
-    saveElectronicsCart(electronicsCart);
-  }, [electronicsCart]);
-
-  useEffect(() => {
     saveGrocerySearch(searchQuery);
   }, [searchQuery]);
 
   useEffect(() => {
-    saveElectronicsSearch(electronicsSearchQuery);
-  }, [electronicsSearchQuery]);
+    if (!getGaMeasurementId()) return;
+    gaTrackPageView('/grocery', 'Valyux · Grocery');
+  }, []);
 
   const submitGrocerySearch = () => {
-    const next = searchDraft.trim();
-    setSearchQuery(next);
+    setSearchQuery(searchDraft.trim());
   };
-
-  const submitElectronicsSearch = () => {
-    const next = electronicsSearchDraft.trim();
-    setElectronicsSearchQuery(next);
-  };
-
-  useEffect(() => {
-    saveActiveSection(activeSection);
-  }, [activeSection]);
-
-  useEffect(() => {
-    if (!getGaMeasurementId()) return;
-    const titles: Record<AppSection, string> = {
-      grocery: 'Grocery',
-      electronics: 'Electronics',
-      flights: 'Flights',
-    };
-    gaTrackPageView(`/${activeSection}`, `Valyux · ${titles[activeSection]}`);
-  }, [activeSection]);
 
   const progressTimerRef = useRef<number | null>(null);
   const SIMILAR_NAME_THRESHOLD = 0.72;
-  /** When both rows have MRP from platforms, require match within this (₹) before merging */
   const MRP_MATCH_EPS = 2;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (!hasPincode) return; // when no pincode yet, PincodeModal handles it
+    if (!hasPincode) return;
     if (!('geolocation' in navigator)) return;
 
-    // Show only once per browser session.
     const key = 'valyux-geo-permission-modal';
     if (sessionStorage.getItem(key) === '1') return;
 
@@ -269,7 +225,6 @@ const AppContent: React.FC = () => {
     return Math.abs(ma - mb) <= MRP_MATCH_EPS;
   };
 
-  /** Higher = title matches search better (upstream order is arbitrary; we were sorting by price only). */
   const groceryQueryMatchScore = (rawQuery: string, product: Product): number => {
     const q = normalizeNameForCompare(rawQuery).trim();
     if (!q) return 0;
@@ -376,10 +331,7 @@ const AppContent: React.FC = () => {
         );
       }
 
-      return [
-        ...prev,
-        { product, selectedPlatform: platform, quantity: 1, optimizedBuyUrl: undefined, optimizedPlatform: undefined },
-      ];
+      return [...prev, { product, selectedPlatform: platform, quantity: 1 }];
     });
   };
 
@@ -396,44 +348,9 @@ const AppContent: React.FC = () => {
     );
   };
 
-  const handleAddToElectronicsCart = (item: Omit<ElectronicsCartItem, 'quantity'>) => {
-    setElectronicsCart(prev => {
-      const existing = prev.find(
-        i => i.productId === item.productId && i.retailer === item.retailer
-      );
-      if (existing) {
-        return prev.map(i =>
-          i.productId === item.productId && i.retailer === item.retailer
-            ? { ...i, quantity: i.quantity + 1 }
-            : i
-        );
-      }
-      return [...prev, { ...item, quantity: 1 }];
-    });
-  };
+  const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  const handleUpdateElectronicsQuantity = (
-    productId: string,
-    retailer: string,
-    delta: number
-  ) => {
-    setElectronicsCart(prev =>
-      prev
-        .map(item => {
-          if (item.productId === productId && item.retailer === retailer) {
-            return { ...item, quantity: Math.max(0, item.quantity + delta) };
-          }
-          return item;
-        })
-        .filter(item => item.quantity > 0)
-    );
-  };
-
-  const groceryCartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
-  const electronicsCartCount = electronicsCart.reduce((acc, item) => acc + item.quantity, 0);
-  const cartCount = activeSection === 'grocery' ? groceryCartCount : electronicsCartCount;
-
-  const groceryCartSubtotal = useMemo(
+  const cartSubtotal = useMemo(
     () =>
       cart.reduce((acc, item) => {
         const price =
@@ -443,12 +360,6 @@ const AppContent: React.FC = () => {
     [cart]
   );
 
-  const electronicsCartSubtotal = useMemo(
-    () => electronicsCart.reduce((acc, item) => acc + item.price * item.quantity, 0),
-    [electronicsCart]
-  );
-
-  const floatingBarTotal = activeSection === 'grocery' ? groceryCartSubtotal : electronicsCartSubtotal;
   const showFloatingCartBar = cartCount > 0 && !isCartOpen;
 
   if (!hasPincode) {
@@ -464,30 +375,24 @@ const AppContent: React.FC = () => {
       <Navbar
         cartCount={cartCount}
         onCartClick={() => setIsCartOpen(true)}
-        searchQuery={activeSection === 'grocery' ? searchDraft : electronicsSearchDraft}
-        onSearchChange={activeSection === 'grocery' ? setSearchDraft : setElectronicsSearchDraft}
-        onSearchSubmit={activeSection === 'grocery' ? submitGrocerySearch : submitElectronicsSearch}
+        searchQuery={searchDraft}
+        onSearchChange={setSearchDraft}
+        onSearchSubmit={submitGrocerySearch}
         onLogoClick={() => {
           setIsCartOpen(false);
-          setActiveSection('grocery');
           setSearchDraft('');
           setSearchQuery('');
-          setElectronicsSearchDraft('');
-          setElectronicsSearchQuery('');
           try {
             window.scrollTo({ top: 0, behavior: 'smooth' });
           } catch {
             window.scrollTo(0, 0);
           }
         }}
-        activeSection={activeSection}
-        onSectionChange={setActiveSection}
       />
 
       <main
         className={`flex-1 max-w-6xl mx-auto w-full px-4 py-6 ${showFloatingCartBar ? 'pb-24 sm:pb-28' : ''}`}
         onClick={(e) => {
-          // Mobile UX: tap outside the search box to dismiss keyboard after searching.
           if (searchQuery.trim().length < 2) return;
           const t = e.target as HTMLElement | null;
           if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || (t as HTMLElement).isContentEditable)) return;
@@ -495,129 +400,102 @@ const AppContent: React.FC = () => {
           active?.blur?.();
         }}
       >
-        {activeSection === 'grocery' && (
-          <>
-            <div className="mb-4 flex flex-col items-center text-center sm:mb-5">
-              <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white tracking-tight">
-                Compare &amp; buy grocery at the best price
-              </h1>
-              <div className="mt-2 max-w-lg px-1">
-                <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                  {addressLabel ? (
-                    <>
-                      <span className="font-medium">{addressLabel}</span>
-                      <span className="mx-1 text-neutral-400">·</span>
-                    </>
-                  ) : null}
-                  <span className="text-neutral-500 dark:text-neutral-400">Pincode {pincode}</span>
-                </p>
-                <div className="mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-                  <button
-                    type="button"
-                    onClick={() => setDeliveryLocation({ pincode: '', addressLabel: '' })}
-                    className="text-xs font-medium text-yellow-700 hover:text-yellow-600 dark:text-yellow-400 dark:hover:text-yellow-300 underline underline-offset-2"
-                  >
-                    Change location
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleUseCurrentLocation}
-                    disabled={geoLoading}
-                    className="text-xs font-medium text-neutral-700 hover:text-neutral-900 dark:text-neutral-200 dark:hover:text-white underline underline-offset-2 disabled:opacity-60"
-                  >
-                    {geoLoading ? 'Getting location…' : 'Use current location'}
-                  </button>
-                </div>
-                {geoError && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                    {geoError}
-                  </p>
-                )}
-                {etaLoading && <p className="text-xs text-neutral-500 mt-2">Loading delivery times…</p>}
-                {etaError && <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">{etaError}</p>}
-                {!hasCoords && hasPincode && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                    Locating your area for live prices…
-                  </p>
-                )}
-              </div>
+        <div className="mb-4 flex flex-col items-center text-center sm:mb-5">
+          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 dark:text-white tracking-tight">
+            Compare &amp; buy grocery at the best price
+          </h1>
+          <div className="mt-2 max-w-lg px-1">
+            <p className="text-sm text-neutral-600 dark:text-neutral-300">
+              {addressLabel ? (
+                <>
+                  <span className="font-medium">{addressLabel}</span>
+                  <span className="mx-1 text-neutral-400">·</span>
+                </>
+              ) : null}
+              <span className="text-neutral-500 dark:text-neutral-400">Pincode {pincode}</span>
+            </p>
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+              <button
+                type="button"
+                onClick={() => setDeliveryLocation({ pincode: '', addressLabel: '' })}
+                className="text-xs font-medium text-yellow-700 hover:text-yellow-600 dark:text-yellow-400 dark:hover:text-yellow-300 underline underline-offset-2"
+              >
+                Change location
+              </button>
+              <button
+                type="button"
+                onClick={handleUseCurrentLocation}
+                disabled={geoLoading}
+                className="text-xs font-medium text-neutral-700 hover:text-neutral-900 dark:text-neutral-200 dark:hover:text-white underline underline-offset-2 disabled:opacity-60"
+              >
+                {geoLoading ? 'Getting location…' : 'Use current location'}
+              </button>
             </div>
-
-            <GroceryPlatformLogos />
-
-            {searchQuery.trim().length === 0 && (
-              <>
-                <GroceryCategoryNav onPickSearch={(q) => { setSearchDraft(q); setSearchQuery(q); }} />
-                <HowItWorks />
-              </>
+            {geoError && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                {geoError}
+              </p>
             )}
-
-            {searchQuery.length >= 2 && (
-              <div className="mb-4">
-                <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-500">
-                  {isSearching && <span>Searching...</span>}
-                  {!isSearching && liveProducts.length > 0 && <span>{displayProducts.length} results</span>}
-                  {searchError && <span className="text-red-600 dark:text-red-400">{searchError}</span>}
-                </div>
-                {isSearching && (
-                  <div className="mt-2 h-2 w-full rounded-full bg-neutral-100 overflow-hidden dark:bg-neutral-800">
-                    <div
-                      className="h-full bg-yellow-400 transition-[width] duration-200"
-                      style={{ width: `${searchProgress}%` }}
-                    />
-                  </div>
-                )}
-              </div>
+            {etaLoading && <p className="text-xs text-neutral-500 mt-2">Loading delivery times…</p>}
+            {etaError && <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">{etaError}</p>}
+            {!hasCoords && hasPincode && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
+                Locating your area for live prices…
+              </p>
             )}
+          </div>
+        </div>
 
-            {searchQuery.length >= 2 && (isSearching || displayProducts.length > 0) && (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
-                {isSearching && displayProducts.length === 0
-                  ? Array.from({ length: 10 }).map((_, i) => <ProductCardSkeleton key={`sk-${i}`} />)
-                  : displayProducts.map((product) => (
-                      <ProductCard key={product.id} product={product} onAddToCart={handleAddToCart} />
-                    ))}
-              </div>
-            )}
+        <GroceryPlatformLogos />
 
-            {searchQuery.length >= 2 && !isSearching && displayProducts.length === 0 && (
-              <div className="py-16 text-center">
-                <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                  No results. Try &quot;milk&quot;, &quot;bread&quot;, or &quot;rice&quot;.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => { setSearchDraft(''); setSearchQuery(''); }}
-                  className="mt-3 text-sm font-medium text-yellow-600 dark:text-yellow-400"
-                >
-                  Clear
-                </button>
-              </div>
-            )}
+        {searchQuery.trim().length === 0 && (
+          <>
+            <GroceryCategoryNav onPickSearch={(q) => { setSearchDraft(q); setSearchQuery(q); }} />
+            <HowItWorks />
           </>
         )}
 
-        {activeSection === 'electronics' && FEATURE_ELECTRONICS_PAGE && (
-          <ElectronicsPage
-            pincode={pincode}
-            searchQuery={electronicsSearchQuery}
-            onSearchChange={setElectronicsSearchQuery}
-            onAddToCart={handleAddToElectronicsCart}
-          />
-        )}
-        {activeSection === 'electronics' && !FEATURE_ELECTRONICS_PAGE && (
-          <ComingSoonPlaceholder
-            title="Electronics"
-            description="Compare electronics across retailers."
-          />
+        {searchQuery.length >= 2 && (
+          <div className="mb-4">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-500">
+              {isSearching && <span>Searching...</span>}
+              {!isSearching && liveProducts.length > 0 && <span>{displayProducts.length} results</span>}
+              {searchError && <span className="text-red-600 dark:text-red-400">{searchError}</span>}
+            </div>
+            {isSearching && (
+              <div className="mt-2 h-2 w-full rounded-full bg-neutral-100 overflow-hidden dark:bg-neutral-800">
+                <div
+                  className="h-full bg-yellow-400 transition-[width] duration-200"
+                  style={{ width: `${searchProgress}%` }}
+                />
+              </div>
+            )}
+          </div>
         )}
 
-        {activeSection === 'flights' && FEATURE_FLIGHTS_PAGE && <FlightsPage />}
-        {activeSection === 'flights' && !FEATURE_FLIGHTS_PAGE && (
-          <ComingSoonPlaceholder
-            title="Flights"
-            description="Search and compare flights across OTAs."
-          />
+        {searchQuery.length >= 2 && (isSearching || displayProducts.length > 0) && (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+            {isSearching && displayProducts.length === 0
+              ? Array.from({ length: 10 }).map((_, i) => <ProductCardSkeleton key={`sk-${i}`} />)
+              : displayProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} onAddToCart={handleAddToCart} />
+                ))}
+          </div>
+        )}
+
+        {searchQuery.length >= 2 && !isSearching && displayProducts.length === 0 && (
+          <div className="py-16 text-center">
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">
+              No results. Try &quot;milk&quot;, &quot;bread&quot;, or &quot;rice&quot;.
+            </p>
+            <button
+              type="button"
+              onClick={() => { setSearchDraft(''); setSearchQuery(''); }}
+              className="mt-3 text-sm font-medium text-yellow-600 dark:text-yellow-400"
+            >
+              Clear
+            </button>
+          </div>
         )}
       </main>
 
@@ -666,19 +544,16 @@ const AppContent: React.FC = () => {
       {showFloatingCartBar && (
         <FloatingCartBar
           itemCount={cartCount}
-          totalRupee={floatingBarTotal}
+          totalRupee={cartSubtotal}
           onViewCart={() => setIsCartOpen(true)}
         />
       )}
 
       {isCartOpen && (
         <CartDrawer
-          activeSection={activeSection}
-          groceryItems={cart}
-          electronicsItems={electronicsCart}
+          items={cart}
           onClose={() => setIsCartOpen(false)}
-          onUpdateGroceryQuantity={handleUpdateQuantity}
-          onUpdateElectronicsQuantity={handleUpdateElectronicsQuantity}
+          onUpdateQuantity={handleUpdateQuantity}
         />
       )}
     </div>

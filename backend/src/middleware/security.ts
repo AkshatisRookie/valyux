@@ -59,26 +59,8 @@ export const qcLimiter = rateLimit({
   message: { error: 'Too many commerce API requests', code: 'RATE_LIMIT_QC' },
 });
 
-export const grocerySearchLimiter = rateLimit({
-  windowMs: MS_1M,
-  max: Math.max(10, Number(process.env.RATE_LIMIT_GROCERY_PER_MIN || 45)),
-  message: { error: 'Too many grocery search requests', code: 'RATE_LIMIT_GROCERY' },
-});
-
 export const locationLimiter = rateLimit({
   windowMs: MS_1M,
   max: Math.max(20, Number(process.env.RATE_LIMIT_LOCATION_PER_MIN || 100)),
   message: { error: 'Too many location requests', code: 'RATE_LIMIT_LOCATION' },
-});
-
-export const geminiLimiter = rateLimit({
-  windowMs: MS_1M,
-  max: Math.max(5, Number(process.env.RATE_LIMIT_GEMINI_PER_MIN || 30)),
-  message: { error: 'Too many AI search requests', code: 'RATE_LIMIT_GEMINI' },
-});
-
-export const flightsLimiter = rateLimit({
-  windowMs: MS_1M,
-  max: Math.max(15, Number(process.env.RATE_LIMIT_FLIGHTS_PER_MIN || 80)),
-  message: { error: 'Too many flight requests', code: 'RATE_LIMIT_FLIGHTS' },
 });
