@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { CartItem, Platform } from '../types';
 import { usePincode } from '../context/PincodeContext';
 import { getPlatformSearchUrl } from '../config/affiliateLinks';
+import { getPlatformIcon, getPlatformIconFallback } from '../config/platformIcons';
 
 interface CartDrawerProps {
   items: CartItem[];
@@ -10,10 +11,10 @@ interface CartDrawerProps {
 }
 
 const PLATFORM_ICONS: Record<Platform, string> = {
-  JioMart: 'https://www.jiomart.com/favicon.ico',
-  Blinkit: 'https://blinkit.com/favicon.ico',
-  Instamart: 'https://www.google.com/s2/favicons?domain=swiggy.com&sz=128',
-  Zepto: 'https://www.zepto.com/favicon.ico',
+  JioMart: getPlatformIcon('JioMart'),
+  Blinkit: getPlatformIcon('Blinkit'),
+  Instamart: getPlatformIcon('Instamart'),
+  Zepto: getPlatformIcon('Zepto'),
 };
 
 const CartDrawer: React.FC<CartDrawerProps> = ({ items, onClose, onUpdateQuantity }) => {

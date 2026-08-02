@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Product, Platform } from '../types';
 import { getPlatformSearchUrl } from '../config/affiliateLinks';
+import { getPlatformIcon, getPlatformIconFallback } from '../config/platformIcons';
 
 const getProductLink = (platform: Platform, productName: string, productUrl?: string) =>
   productUrl || getPlatformSearchUrl(platform, productName);
@@ -50,14 +51,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
     }
   };
 
-  const getPlatformIcon = (platform: Platform) => {
-    switch (platform) {
-      case 'JioMart': return 'https://www.google.com/s2/favicons?domain=jiomart.com&sz=128';
-      case 'Blinkit':   return 'https://blinkit.com/favicon.ico';
-      case 'Instamart':  return 'https://www.google.com/s2/favicons?domain=swiggy.com&sz=128';
-      case 'Zepto':     return 'https://www.zepto.com/favicon.ico';
-      default:          return '';
+  const getPlatformIconUrl = (platform: Platform) => getPlatformIcon(platform);
+
+  const handlePlatformIconError = (platform: Platform) => (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const el = e.currentTarget;
+    const fallback = getPlatformIconFallback(platform);
+    if (fallback && el.src !== fallback) {
+      el.src = fallback;
+      return;
     }
+    el.style.visibility = 'hidden';
   };
 
   if (!cheapestPrice) {
@@ -119,14 +122,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
           <div className="flex gap-2">
             <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/80 ring-1 ring-black/5 dark:bg-neutral-700/80 dark:ring-white/10">
               <img
-                src={getPlatformIcon(cheapestPrice.platform)}
+                src={getPlatformIconUrl(cheapestPrice.platform)}
                 alt=""
                 width={24}
                 height={24}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-contain"
                 loading="lazy"
                 decoding="async"
                 referrerPolicy="no-referrer"
+                onError={handlePlatformIconError(cheapestPrice.platform)}
               />
             </span>
             <div className="flex min-w-0 flex-1 flex-col items-end gap-0.5 text-right">
@@ -178,14 +182,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
                     <div className="flex gap-1.5 min-w-0 flex-1">
                       <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 overflow-hidden rounded-full">
                         <img
-                          src={getPlatformIcon(pp.platform)}
+                          src={getPlatformIconUrl(pp.platform)}
                           alt=""
                           width={32}
                           height={32}
-                          className="h-full w-full object-cover"
+                          className="h-full w-full object-contain"
                           loading="lazy"
                           decoding="async"
                           referrerPolicy="no-referrer"
+                          onError={handlePlatformIconError(pp.platform)}
                         />
                       </span>
                       <div className="min-w-0 flex-1 flex flex-col gap-0.5 items-end text-right">

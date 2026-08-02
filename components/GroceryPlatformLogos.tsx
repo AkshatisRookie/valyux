@@ -1,16 +1,13 @@
 import React from 'react';
 import type { Platform } from '../types';
 import { usePincode } from '../context/PincodeContext';
+import { getPlatformIcon, getPlatformIconFallback } from '../config/platformIcons';
 
-const GROCERY_PLATFORMS: { platform: Platform; label: string; icon: string }[] = [
-  {
-    platform: 'JioMart',
-    label: 'JioMart',
-    icon: 'https://www.google.com/s2/favicons?domain=jiomart.com&sz=128',
-  },
-  { platform: 'Blinkit', label: 'Blinkit', icon: 'https://www.google.com/s2/favicons?domain=blinkit.com&sz=128' },
-  { platform: 'Instamart', label: 'Swiggy Instamart', icon: 'https://www.google.com/s2/favicons?domain=swiggy.com&sz=128' },
-  { platform: 'Zepto', label: 'Zepto', icon: 'https://www.google.com/s2/favicons?domain=zepto.com&sz=128' },
+const GROCERY_PLATFORMS: { platform: Platform; label: string }[] = [
+  { platform: 'JioMart', label: 'JioMart' },
+  { platform: 'Blinkit', label: 'Blinkit' },
+  { platform: 'Instamart', label: 'Swiggy Instamart' },
+  { platform: 'Zepto', label: 'Zepto' },
 ];
 
 /**
@@ -48,14 +45,19 @@ const GroceryPlatformLogos: React.FC = () => {
               title={p.label}
             >
               <img
-                src={p.icon}
+                src={getPlatformIcon(p.platform)}
                 alt=""
                 className="h-9 w-9 sm:h-10 sm:w-10 object-contain"
                 loading="lazy"
                 referrerPolicy="no-referrer"
                 decoding="async"
                 onError={(e) => {
-                  const el = e.target as HTMLImageElement;
+                  const el = e.currentTarget;
+                  const fallback = getPlatformIconFallback(p.platform);
+                  if (fallback && el.src !== fallback) {
+                    el.src = fallback;
+                    return;
+                  }
                   el.style.display = 'none';
                 }}
               />
