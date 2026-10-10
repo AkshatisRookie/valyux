@@ -1,11 +1,8 @@
 
 import React, { useState } from 'react';
 import { Product, Platform } from '../types';
-import { getPlatformSearchUrl } from '../config/affiliateLinks';
+import { getProductLink } from '../config/affiliateLinks';
 import { getPlatformIcon, getPlatformIconFallback } from '../config/platformIcons';
-
-const getProductLink = (platform: Platform, productName: string, productUrl?: string) =>
-  productUrl || getPlatformSearchUrl(platform, productName);
 
 interface ProductCardProps {
   product: Product;
@@ -137,7 +134,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
               <div className="flex w-full items-center justify-end gap-1">
                 <span className="text-base font-bold tabular-nums whitespace-nowrap">₹{cheapestPrice.price}</span>
                 <a
-                  href={getProductLink(cheapestPrice.platform, product.name, cheapestPrice.productUrl)}
+                  href={getProductLink(cheapestPrice.platform, product.name, cheapestPrice.productUrl, cheapestPrice.externalItemId)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="shrink-0 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white p-0.5"
@@ -197,7 +194,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
                         <div className="flex w-full items-center justify-end gap-1">
                           <span className="text-xs font-semibold tabular-nums whitespace-nowrap">₹{pp.price}</span>
                           <a
-                            href={getProductLink(pp.platform, product.name, pp.productUrl)}
+                            href={getProductLink(pp.platform, product.name, pp.productUrl, pp.externalItemId)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="shrink-0 text-neutral-600 dark:text-neutral-400 p-0.5"

@@ -116,6 +116,25 @@ export function flattenQcResults(data: unknown): QcFlatProduct[] {
   return out;
 }
 
+const INSTAMART_ITEM_BASE = 'https://instamart.in/item/';
+
+/** Instamart deeplinks like https://instamart.in/p/--UZ3C4E0RVS 404; /item/{id} works. */
+function instamartItemId(raw?: string): string | null {
+  if (!raw) return null;
+  const fromUrl = raw.match(/instamart\.in\/(?:p|item)\/[-_]*([A-Za-z0-9]+)/i);
+  if (fromUrl?.[1]) return fromUrl[1];
+  const cleaned = raw.replace(/^[-_]+/, '').trim();
+  return /^[A-Za-z0-9]+$/.test(cleaned) ? cleaned : null;
+}
+
+function productUrlForPlatform(plat: Platform, p: QcFlatProduct): string | undefined {
+  if (plat === 'Instamart') {
+    const id = instamartItemId(p.id) || instamartItemId(p.deeplink);
+    return id ? `${INSTAMART_ITEM_BASE}${id}` : p.deeplink;
+  }
+  return p.deeplink;
+}
+
 function toPlatformPrice(
   p: QcFlatProduct,
   etaMap: Partial<Record<Platform, string>>
@@ -129,7 +148,7 @@ function toPlatformPrice(
     price: p.offer_price,
     originalPrice: p.mrp || p.offer_price,
     deliveryTime: sla,
-    productUrl: p.deeplink,
+    productUrl: productUrlForPlatform(plat, p),
     externalItemId: p.id,
   };
 }

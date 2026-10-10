@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { CartItem, Platform } from '../types';
 import { usePincode } from '../context/PincodeContext';
-import { getPlatformSearchUrl } from '../config/affiliateLinks';
+import { getProductLink } from '../config/affiliateLinks';
 import { getPlatformIcon, getPlatformIconFallback } from '../config/platformIcons';
 
 interface CartDrawerProps {
@@ -102,9 +102,13 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ items, onClose, onUpdateQuantit
     : 0;
 
   const openLink = (item: CartItem) => {
-    const url =
-      item.product.platformPrices.find((p) => p.platform === item.selectedPlatform)?.productUrl ||
-      getPlatformSearchUrl(item.selectedPlatform, item.product.name);
+    const offer = item.product.platformPrices.find((p) => p.platform === item.selectedPlatform);
+    const url = getProductLink(
+      item.selectedPlatform,
+      item.product.name,
+      offer?.productUrl,
+      offer?.externalItemId
+    );
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 

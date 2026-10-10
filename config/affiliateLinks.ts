@@ -42,3 +42,30 @@ export function getPlatformSearchUrl(platform: Platform, searchQuery: string): s
   const encoded = encodeURIComponent(searchQuery.trim());
   return `${base}${path}${encoded}`;
 }
+
+const INSTAMART_ITEM_BASE = 'https://instamart.in/item/';
+
+/** Instamart `/p/--ID` URLs 404; working format is `/item/{ID}` without leading dashes. */
+function instamartItemId(raw?: string): string | null {
+  if (!raw) return null;
+  const fromUrl = raw.match(/instamart\.in\/(?:p|item)\/[-_]*([A-Za-z0-9]+)/i);
+  if (fromUrl?.[1]) return fromUrl[1];
+  const cleaned = raw.replace(/^[-_]+/, '').trim();
+  return /^[A-Za-z0-9]+$/.test(cleaned) ? cleaned : null;
+}
+
+/**
+ * Product open-in-app URL. Instamart always uses https://instamart.in/item/{id}.
+ */
+export function getProductLink(
+  platform: Platform,
+  productName: string,
+  productUrl?: string,
+  itemId?: string
+): string {
+  if (platform === 'Instamart') {
+    const id = instamartItemId(itemId) || instamartItemId(productUrl);
+    if (id) return `${INSTAMART_ITEM_BASE}${id}`;
+  }
+  return productUrl || getPlatformSearchUrl(platform, productName);
+}
